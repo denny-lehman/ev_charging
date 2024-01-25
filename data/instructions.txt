@@ -1,0 +1,5 @@
+most data will come in .gz zip files.
+to unzip all the files, run
+$ gunzip *.gz 
+
+taken from https://askubuntu.com/questions/693409/how-can-i-extract-multiple-gzip-files-in-directory-and-subdirectories
