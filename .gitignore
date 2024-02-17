@@ -5,6 +5,8 @@ __pycache__/
 
 # data files
 data/ACN-Data-Static-main
+data/sessions
+data/time series
 
 # C extensions
 *.so
@@ -161,3 +163,9 @@ cython_debug/
 #  option (not recommended) you can uncomment the following to ignore the entire idea folder.
 #.idea/
 /mysecrets.py
+.idea/inspectionProfiles/profiles_settings.xml
+.idea/inspectionProfiles/Project_Default.xml
+.idea/misc.xml
+.idea/vcs.xml
+.idea/jupyter-settings.xml
+.idea/workspace.xml
