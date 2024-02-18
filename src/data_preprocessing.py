@@ -29,13 +29,13 @@ def userinput_processing(df):
     return pd.concat([df.drop(columns='userInputs'), df['userInputs'].apply(convert_userInputs)], axis=1)
 
 def datetime_processing(df):
-    df['connectionTime'] = pd.to_datetime(df['connectionTime'], infer_datetime_format=True, utc=True, errors='coerce')
+    df['connectionTime'] = pd.to_datetime(df['connectionTime'], utc=True, errors='coerce')
     df['connectionTimeHour'] = df['connectionTime'].dt.hour
     df['connectionTimeDay'] = df['connectionTime'].dt.day
-    df['disconnectTime'] = pd.to_datetime(df['disconnectTime'], infer_datetime_format=True, utc=True, errors='coerce')
+    df['disconnectTime'] = pd.to_datetime(df['disconnectTime'], utc=True, errors='coerce')
     df['disconnectTimeHour'] = df['disconnectTime'].dt.hour
     df['disconnectTimeDay'] = df['disconnectTime'].dt.day
-    df['doneChargingTime'] = pd.to_datetime(df['doneChargingTime'], infer_datetime_format=True, utc=True, errors='coerce')
+    df['doneChargingTime'] = pd.to_datetime(df['doneChargingTime'], utc=True, errors='coerce')
     df['doneChargingTimeHour'] = df['doneChargingTime'].dt.hour
     df['doneChargingTimeDay'] = df['doneChargingTime'].dt.day
     return df
