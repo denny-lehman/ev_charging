@@ -17,6 +17,6 @@ conda create \
 
 conda activate ev
 
-pip install pandas numpy matplotlib seaborn
+pip install pandas numpy matplotlib seaborn jupyter psycopg2
 
 pip freeze>requirements.txt
