@@ -1,4 +1,5 @@
 import pandas as pd
+from pandas.tseries.holiday import USFederalHolidayCalendar as calendar
 
 def convert_userInputs(x):
     """could do try except block instead"""
@@ -38,4 +39,11 @@ def datetime_processing(df):
     df['doneChargingTime'] = pd.to_datetime(df['doneChargingTime'], utc=True, errors='coerce')
     df['doneChargingTimeHour'] = df['doneChargingTime'].dt.hour
     df['doneChargingTimeDay'] = df['doneChargingTime'].dt.day
+    return df
+
+def holiday_processing(df):
+    assert 'connectionTime' in df.columns
+    cal = calendar()
+    holidays = cal.holidays(start=df['connectionTime'].min().date(), end=df['connectionTime'].max().date())
+    df['is_holiday'] = df['connectionTime'].isin(holidays)
     return df
