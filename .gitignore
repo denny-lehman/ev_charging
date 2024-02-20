@@ -12,6 +12,7 @@ data/time series
 *.so
 
 # Distribution / packaging
+*.parquet
 .Python
 build/
 develop-eggs/
