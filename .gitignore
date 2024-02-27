@@ -5,6 +5,10 @@ __pycache__/
 
 # data files
 data/ACN-Data-Static-main
+data/sessions
+data/time_series
+data/caiso_dataset_5min.csv
+
 
 # C extensions
 *.so
