@@ -61,13 +61,20 @@ def create_x(start, end, caiso_fp=None, sun_fp=None):
     x['connectionTime'] = x.index
     x['is_sunny'] = 0
     x = holiday_processing(x).drop(columns=['connectionTime'])
+
     if caiso_fp:
         caiso = pd.read_csv(caiso_fp)
         caiso['datetime'] = pd.to_datetime(caiso['date'] + ' ' + caiso['Time'], errors='coerce', utc=True)
         caiso = caiso.set_index('datetime')
         caiso_hourly = caiso.groupby(pd.Grouper(freq='1h')).mean()
         caiso_hourly.index.tz_localize(None)
-        x = x.join(caiso_hourly)
+        for i in list(caiso_hourly.columns):
+            caiso_hourly[i] = caiso_hourly[i].interpolate(method='time')
+        drop_cols = ['Net demand forecast', 'Natural Gas', 'Large Hydro', 'Demand', 'Net Demand', 'Day-ahead demand forecast',
+                     'Day-ahead net demand forecast', 'Resource adequacy capacity forecast', 'Net resource adequacy capacity forecast',
+                     'Reserve requirement', 'Reserve requirement forecast', 'Resource adequacy credits']
+        x = x.join(caiso_hourly.drop(columns=drop_cols))
+
     if sun_fp:
         sun = pd.read_csv(sun_fp)
         sun['sunrise_ts'] = pd.to_datetime(sun['date'] + ' ' + sun['sunrise'], errors='coerce', utc=True)
