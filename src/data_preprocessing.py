@@ -52,13 +52,14 @@ def holiday_processing(df):
     return df
 
 
-def create_x(start, end, caiso_fp=None):
+def create_x(start, end, caiso_fp=None, sun_fp=None):
     x = pd.DataFrame(index=pd.date_range(start, end, inclusive='both', freq='h', tz=0),
-                     columns=['dow', 'hour', 'month'])
+                     columns=['dow', 'hour', 'month', 'is_sunny'])
     x['dow'] = x.index.dayofweek
     x['hour'] = x.index.hour
     x['month'] = x.index.month
     x['connectionTime'] = x.index
+    x['is_sunny'] = 0
     x = holiday_processing(x).drop(columns=['connectionTime'])
     if caiso_fp:
         caiso = pd.read_csv(caiso_fp)
@@ -67,6 +68,17 @@ def create_x(start, end, caiso_fp=None):
         caiso_hourly = caiso.groupby(pd.Grouper(freq='1h')).mean()
         caiso_hourly.index.tz_localize(None)
         x = x.join(caiso_hourly)
+    if sun_fp:
+        sun = pd.read_csv(sun_fp)
+        sun['sunrise_ts'] = pd.to_datetime(sun['date'] + ' ' + sun['sunrise'], errors='coerce', utc=True)
+        sun['sunset_ts'] = pd.to_datetime(sun['date'] + ' ' + sun['sunset'], errors='coerce', utc=True)
+        for i in list(sun.index):
+            start_ = sun.loc[i, 'sunrise_ts']
+            end_ = sun.loc[i, 'sunset_ts']
+            x.loc[start_:end_, 'is_sunny'] = 1
+    else:
+        x = x.drop(columns='is_sunny')
+
     return x
 
 
