@@ -68,11 +68,13 @@ def create_x(start, end, caiso_fp=None, sun_fp=None):
         caiso = caiso.set_index('datetime')
         caiso_hourly = caiso.groupby(pd.Grouper(freq='1h')).mean()
         caiso_hourly.index.tz_localize(None)
-        for i in list(caiso_hourly.columns):
-            caiso_hourly[i] = caiso_hourly[i].interpolate(method='time')
-        drop_cols = ['Net demand forecast', 'Natural Gas', 'Large Hydro', 'Demand', 'Net Demand', 'Day-ahead demand forecast',
-                     'Day-ahead net demand forecast', 'Resource adequacy capacity forecast', 'Net resource adequacy capacity forecast',
+        drop_cols = ['Net demand forecast', 'Natural Gas', 'Large Hydro', 'Demand', 'Net Demand',
+                     'Day-ahead demand forecast',
+                     'Day-ahead net demand forecast', 'Resource adequacy capacity forecast',
+                     'Net resource adequacy capacity forecast',
                      'Reserve requirement', 'Reserve requirement forecast', 'Resource adequacy credits']
+        for i in caiso_hourly.columns:
+            caiso_hourly[i] = caiso_hourly[i].interpolate(method='time')
         x = x.join(caiso_hourly.drop(columns=drop_cols))
 
     if sun_fp:
