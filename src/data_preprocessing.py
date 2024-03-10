@@ -51,7 +51,6 @@ def holiday_processing(df):
     df['is_holiday'] = df['connectionTime'].isin(holidays)
     return df
 
-
 def create_x(start, end, caiso_fp=None, sun_fp=None):
     x = pd.DataFrame(index=pd.date_range(start, end, inclusive='both', freq='h', tz=0),
                      columns=['dow', 'hour', 'month', 'is_sunny'])
@@ -90,7 +89,6 @@ def create_x(start, end, caiso_fp=None, sun_fp=None):
 
     return x
 
-
 def create_y(df, start, end, spaceID):
     tmp = df.copy()
     tmp = tmp[tmp['spaceID'] == spaceID].sort_index()
@@ -104,3 +102,31 @@ def create_y(df, start, end, spaceID):
         session_ = tmp.loc[i, 'sessionID']
         y.loc[start_:end_, ['is_available', 'sessionID']] = 0, session_
     return y  # y is a dataframe with a datetime index and two columns, is_available and sessionID
+
+def create_wide_y(df, start_date='2019-03-25', end_date='2021-09-12'):
+    tmp = df.copy()
+    tmp.set_index('connectionTime', inplace=True)
+    tmp = tmp.sort_index().loc[start_date:end_date, :]
+
+    space_cols = tmp.spaceID.unique()
+    space_cols = (list(space_cols.astype('str')))
+
+    y = pd.DataFrame(index=pd.date_range(start_date, end_date, inclusive='both', freq='h', tz=0), columns=space_cols)
+    y[space_cols] = 1
+
+    tmp.reset_index(inplace=True)
+
+    for i in list(tmp.index):
+        start_ = tmp.loc[i, 'connectionTime']
+        end_ = tmp.loc[i, 'disconnectTime']
+        session_ = tmp.loc[i, 'sessionID']
+        space_ = tmp.loc[i, 'spaceID']
+        # print(start_,'\t', end_,'\t', session_, '\t', space_)
+        try:
+            y.loc[start_:end_, space_] = 0
+        except:
+            print('bad value:')
+            print(i, '\t', start_, '\t', end_, '\t', session_, '\t', space_)
+
+    return y
+
