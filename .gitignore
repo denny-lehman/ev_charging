@@ -5,6 +5,8 @@ __pycache__/
 
 # data files
 data/ACN-Data-Static-main
+data/ACN*
+data/sessions
 
 # C extensions
 *.so
