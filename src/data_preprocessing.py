@@ -89,6 +89,63 @@ def create_wide_y(df, start_date='2019-03-25', end_date='2021-09-12'):
 
     return y
 
+def create_all_site_y(df, regression=True):
+    """This function makes a y pd.series for modeling all sites.
+    It does this by doing the following process
+    1. checks incoming dataframe for correct configuration
+    2. creates a list of all unique sites in the df
+    3. creates the empty all_y dataframe
+    4. loops through each site and
+        a. identifies the spaces, start, and end dates of that site
+        b. creates an all available y dataframe for that site
+        c. for each charging entry
+            i. marks the space as occupied for that hour
+        d. if the outcome variable is regression, divides number of available spots by the total number of spaces
+        e. combines all y's together
+    5. returns the y dataframe"""
+    assert {'connectionTime', 'disconnectTime', 'siteID', 'spaceID'}.issubset(df.columns)
+    sites = list(df.siteID.unique())
+    all_y = pd.DataFrame()
+
+    for site in sites:
+        # identify spaces, start, and end dates
+        space_cols = list(df.loc[df['siteID'] == site, 'spaceID'].unique()) # saves all of the unique spaces as a list of strings
+        start_date = df.loc[df['siteID'] == site, 'connectionTime'].min().date() # gets min connection date
+        end_date = df.loc[df['siteID'] == site, 'disconnectTime'].max().date() + pd.Timedelta('1d') # gets one day after last disconnect date
+
+        # create y frame
+        y = pd.DataFrame(index=pd.date_range(start_date, end_date, inclusive='both', freq='h', tz=0), columns=space_cols)
+        y[space_cols] = 1
+
+        # prepare loop
+        tmp = df[df['siteID'] == site].reset_index()
+
+        for i in list(tmp.index):
+            start_ = tmp.loc[i, 'connectionTime']
+            end_ = tmp.loc[i, 'disconnectTime']
+            space_ = tmp.loc[i, 'spaceID']
+            try:
+                y.loc[start_:end_, space_] = 0
+            except:
+                print('bad value:')
+                print(i, '\t', start_, '\t', end_, '\t', space_)
+
+        if regression:
+            y = y.sum(axis=1)/len(space_cols)
+
+        # combine y's from different sites
+        if all_y.empty:
+            all_y = y
+        else:
+            all_y = pd.concat([all_y, y], axis=0)
+    return all_y
+
+
+
+
+
+
+# TODO: Deprecate this function
 def create_x(df, start_date='2019-03-25', end_date='2021-09-12'):
     X = pd.DataFrame(index=pd.date_range(start_date, end_date, inclusive='both', freq='h', tz=0),
                      columns=['dow', 'hour', 'month'])
@@ -99,3 +156,27 @@ def create_x(df, start_date='2019-03-25', end_date='2021-09-12'):
     X['connectionTime'] = X.index
     X = holiday_processing(X).drop(columns=['connectionTime'])
     return X
+
+def create_all_site_x(df):
+    assert {'connectionTime', 'disconnectTime', 'siteID'}.issubset(df.columns)
+    sites = list(df.siteID.unique())
+    all_X = pd.DataFrame()
+    for site in sites:
+        start_date = df.loc[df['siteID'] == site, 'connectionTime'].min().date()
+        end_date = df.loc[df['siteID'] == site, 'disconnectTime'].max().date() + pd.Timedelta('1d')
+
+        X = pd.DataFrame(index=pd.date_range(start_date, end_date, inclusive='both', freq='h', tz=0),
+                         columns=['dow', 'hour', 'month', 'siteID'])
+        X['dow'] = X.index.dayofweek
+        X['hour'] = X.index.hour
+        X['month'] = X.index.month
+        X['connectionTime'] = X.index
+        X['siteID'] = site
+        X = holiday_processing(X).drop(columns=['connectionTime'])
+
+        if all_X.empty:
+            all_X = X
+        else:
+            all_X = pd.concat([all_X, X], axis=0)
+    return all_X
+

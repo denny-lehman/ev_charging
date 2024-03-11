@@ -20,16 +20,21 @@ def load_model():
     model = pickle.load(open('../model.pkl', 'rb'))
     return model
 
+sites = ['Office001','Caltech','JPL']
+site_ids = [2,1,19]
+site2id = { k:v for (k,v) in zip(sites, site_ids)}
 
-st.title('Charge Buddy: Charger Availability')
-st.sidebar.title("Options")
-st.sidebar.subheader('Select location')
-location = st.sidebar.selectbox('Click below to select a new asset',
-                                 ['Office001','Caltech','JPL'], index=0,
+st.title('Charge Buddy')
+st.subheader('Helping EV owners know when to charge')
+st.sidebar.title("When and where?")
+st.sidebar.subheader('Select charging site')
+site = st.sidebar.selectbox('Click below to select a charger location',
+                                 sites, index=0,
                                  # format_func=label
                      )
-start_date = st.sidebar.date_input("Start date", value=datetime.date(2021,1,4))
-end_date = st.sidebar.date_input("End date", value=datetime.date(2021,1,6))
+st.sidebar.subheader('Select date')
+start_date = st.sidebar.date_input("Start date", value=datetime.datetime.today().date())
+end_date = st.sidebar.date_input("End date", value=datetime.datetime.today().date() + pd.Timedelta('1d'))
 st.sidebar.button("Run")
 
 
@@ -39,30 +44,40 @@ st.sidebar.button("Run")
 #                 'https://twitter.com/paduel_py).\n\n'
 #                 'Check the code at https://github.com/paduel/streamlit_finance_chart')
 
-data_load_state = st.text('Loading data...')
-df = load_data()
-data_load_state.text('Loading data...done!')
 
 
 
-model_load_state = st.text('Loading model...')
-clf = load_model()
-model_load_state.text('Loading model...done!')
-st.write(clf)
 
-y = create_wide_y(df)
-y = y.sum(axis=1)
-
-st.subheader(f'How often are spots available at {location}')
-hist_values = np.histogram(y, bins=9, range=(0,9))[0]
-st.bar_chart(hist_values)
 
 st.subheader('Availability')
-model = pickle.load(open('../model.pkl', 'rb'))
-model = load_model()
+model = pickle.load(open('../reg_model.pkl', 'rb'))
+
 st.write(start_date, end_date)
 # start_date = '2021-01-04'
 # end_date = '2021-01-06'
-X = create_x(df, start_date=start_date, end_date=end_date)
-prediction = pd.Series(model.predict(X), index=X.index)
-st.bar_chart(prediction)
+# X = create_x(start=start_date, end=end_date)
+
+X = pd.DataFrame(index=pd.date_range(start_date, end_date, inclusive='both', freq='h', tz=0),
+                     columns=['dow', 'hour', 'month', 'siteID'])
+# X['dow'] = X.index.dt.hour
+X['dow'] = X.index.dayofweek
+X['hour'] = X.index.hour
+X['month'] = X.index.month
+X['connectionTime'] = X.index
+X = holiday_processing(X).drop(columns=['connectionTime'])
+X['siteID'] = site2id[site]
+prediction = pd.Series(model.predict(X), index=X.index, name='% available')
+
+# regression messes up sometimes
+prediction[prediction>1] = 1
+prediction[prediction<0] = 0
+
+st.bar_chart(prediction, y='% available')
+
+
+st.subheader(f'How often are spots available at {site}')
+# st.text(f'Very available. Average number of open charger spots {np.round(y.mean(),1)} out of {y.max()}')
+st.text('More locations coming soon... ')
+
+# hist_values = np.histogram(y, bins=9, range=(0,9))[0]
+# st.bar_chart(hist_values)
