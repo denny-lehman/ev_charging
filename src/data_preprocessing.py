@@ -1,4 +1,5 @@
 import pandas as pd
+import numpy as np
 from pandas.tseries.holiday import USFederalHolidayCalendar as calendar
 
 def convert_userInputs(x):
@@ -44,8 +45,8 @@ def datetime_processing(df):
 def holiday_processing(df):
     assert 'connectionTime' in df.columns
     cal = calendar()
-    holidays = cal.holidays(start=df['connectionTime'].min().date(), end=df['connectionTime'].max().date())
-    df['is_holiday'] = df['connectionTime'].isin(holidays)
+    holidays = cal.holidays(start=df['connectionTime'].min().date(), end=df['disconnectTime'].max().date())
+    df['is_holiday'] = df['connectionTime'].dt.date.isin(holidays.date)
     return df
 
 def create_y(df, start, end, spaceID):
@@ -110,8 +111,9 @@ def create_all_site_y(df, regression=True):
     for site in sites:
         # identify spaces, start, and end dates
         space_cols = list(df.loc[df['siteID'] == site, 'spaceID'].unique()) # saves all of the unique spaces as a list of strings
-        start_date = df.loc[df['siteID'] == site, 'connectionTime'].min().date() # gets min connection date
-        end_date = df.loc[df['siteID'] == site, 'disconnectTime'].max().date() + pd.Timedelta('1d') # gets one day after last disconnect date
+        start_date, end_date = get_start_end_times(df[df['siteID'] == site])
+        # start_date = df.loc[df['siteID'] == site, 'connectionTime'].min().date() # gets min connection date
+        # end_date = df.loc[df['siteID'] == site, 'disconnectTime'].max().date() + pd.Timedelta('1d') # gets one day after last disconnect date
 
         # create y frame
         y = pd.DataFrame(index=pd.date_range(start_date, end_date, inclusive='both', freq='h', tz=0), columns=space_cols)
@@ -145,17 +147,56 @@ def create_all_site_y(df, regression=True):
 
 
 
-# TODO: Deprecate this function
-def create_x(df, start_date='2019-03-25', end_date='2021-09-12'):
-    X = pd.DataFrame(index=pd.date_range(start_date, end_date, inclusive='both', freq='h', tz=0),
-                     columns=['dow', 'hour', 'month'])
-    # X['dow'] = X.index.dt.hour
-    X['dow'] = X.index.dayofweek
-    X['hour'] = X.index.hour
-    X['month'] = X.index.month
-    X['connectionTime'] = X.index
-    X = holiday_processing(X).drop(columns=['connectionTime'])
+def create_x(start, end, caiso_fp=None, sun_fp=None):
+    x = pd.DataFrame(index=pd.date_range(start, end, inclusive='both', freq='h', tz=0),
+                     columns=['dow', 'hour', 'month', 'is_sunny'])
+    x['dow'] = x.index.dayofweek
+    x['hour'] = x.index.hour
+    x['month'] = x.index.month
+    x['is_sunny'] = 0
+    # x = holiday_processing(x).drop(columns=['connectionTime'])
+    # holiday processing. TODO: REFACTOR TO ITS OWN FUNCTION
+    cal = calendar()
+    holidays = cal.holidays(start=start, end=end)
+    x['is_holiday'] = np.isin(x.index.date, holidays.date)
+
+    if caiso_fp:
+        caiso = pd.read_csv(caiso_fp)
+        caiso['datetime'] = pd.to_datetime(caiso['date'] + ' ' + caiso['Time'], errors='coerce', utc=True)
+        caiso = caiso.set_index('datetime')
+        caiso.drop(columns=['date', 'Time'], inplace=True)
+        caiso_hourly = caiso.groupby(pd.Grouper(freq='1h')).mean()
+        caiso_hourly.index.tz_localize(None)
+        drop_cols = ['Net demand forecast', 'Natural Gas', 'Large Hydro', 'Demand', 'Net Demand',
+                     'Day-ahead demand forecast',
+                     'Day-ahead net demand forecast', 'Resource adequacy capacity forecast',
+                     'Net resource adequacy capacity forecast',
+                     'Reserve requirement', 'Reserve requirement forecast', 'Resource adequacy credits']
+        for i in caiso_hourly.columns:
+            caiso_hourly[i] = caiso_hourly[i].interpolate(method='time')
+        x = x.join(caiso_hourly.drop(columns=drop_cols))
+
+    if sun_fp:
+        sun = pd.read_csv(sun_fp)
+        sun['sunrise_ts'] = pd.to_datetime(sun['date'] + ' ' + sun['sunrise'], errors='coerce', utc=True)
+        sun['sunset_ts'] = pd.to_datetime(sun['date'] + ' ' + sun['sunset'], errors='coerce', utc=True)
+        for i in list(sun.index):
+            start_ = sun.loc[i, 'sunrise_ts']
+            end_ = sun.loc[i, 'sunset_ts']
+            x.loc[start_:end_, 'is_sunny'] = 1
+    else:
+        x = x.drop(columns='is_sunny')
+
+    return x
+
+def update_varuns_x(X, site_id):
+    X['siteID'] = site_id
     return X
+
+def get_start_end_times(df):
+    start_date = df.loc[:, 'connectionTime'].min().date()
+    end_date = df.loc[:, 'disconnectTime'].max().date() + pd.Timedelta('1d')
+    return start_date, end_date
 
 def create_all_site_x(df):
     assert {'connectionTime', 'disconnectTime', 'siteID'}.issubset(df.columns)
