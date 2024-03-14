@@ -42,25 +42,45 @@ def datetime_processing(df):
     df['doneChargingTimeDay'] = df['doneChargingTime'].dt.day
     return df
 
-def holiday_processing(df):
-    assert 'connectionTime' in df.columns
-    cal = calendar()
-    holidays = cal.holidays(start=df['connectionTime'].min().date(), end=df['disconnectTime'].max().date())
-    df['is_holiday'] = df['connectionTime'].dt.date.isin(holidays.date)
+########################
+## Holiday processing ##
+########################
+def holiday_processing(df:pd.DataFrame, date_column:str='index')->pd.DataFrame:
+    """this function is a wrapper for the holiday_processing_series function.
+     This function takes a data frame and returns the dataframe with a new column is_holiday"""
+    if date_column == 'index':
+        date_series = df.index
+    else:
+        date_series = df[date_column]
+
+    start = date_series.min()
+    end = date_series.max()
+
+    df['is_holiday'] = holiday_processing_series(start, end, date_series)
+
     return df
 
-def create_y(df, start, end, spaceID):
+def holiday_processing_series(start, end, dates)->np.ndarray:
+    """This function returns a true or false if a given date range falls on a holiday"""
+    cal = calendar()
+    holidays = cal.holidays(start=start, end=end)
+    return np.isin(dates.date, holidays.date)
+
+
+########################
+## Create Y values    ##
+########################
+def create_single_space_y(df, start, end, spaceID):
     tmp = df.copy()
     tmp = tmp[tmp['spaceID'] == spaceID].sort_index()
     y = pd.DataFrame(index=pd.date_range(start, end, inclusive='both', freq='h', tz=0),
-                     columns=['is_available', 'sessionID'])
+                     columns=['is_available'])
     y['is_available'] = 1
     tmp.reset_index(inplace=True)
     for i in list(tmp.index):
         start_ = tmp.loc[i, 'connectionTime']
         end_ = tmp.loc[i, 'disconnectTime']
-        session_ = tmp.loc[i, 'sessionID']
-        y.loc[start_:end_, ['is_available', 'sessionID']] = 0, session_
+        y.loc[start_:end_, 'is_available'] = 0
     return y  # y is a dataframe with a datetime index and two columns, is_available and sessionID
 
 def create_wide_y(df, start_date='2019-03-25', end_date='2021-09-12'):
@@ -154,11 +174,8 @@ def create_x(start, end, caiso_fp=None, sun_fp=None):
     x['hour'] = x.index.hour
     x['month'] = x.index.month
     x['is_sunny'] = 0
-    # x = holiday_processing(x).drop(columns=['connectionTime'])
-    # holiday processing. TODO: REFACTOR TO ITS OWN FUNCTION
-    cal = calendar()
-    holidays = cal.holidays(start=start, end=end)
-    x['is_holiday'] = np.isin(x.index.date, holidays.date)
+
+    x = holiday_processing(x)
 
     if caiso_fp:
         caiso = pd.read_csv(caiso_fp)
@@ -194,10 +211,14 @@ def update_varuns_x(X, site_id):
     return X
 
 def get_start_end_times(df):
+    """returns the start and end time of the site dataframe
+    which equates to midnight of the first connectionTime date and
+    one day after the max disconnectTime date"""
     start_date = df.loc[:, 'connectionTime'].min().date()
     end_date = df.loc[:, 'disconnectTime'].max().date() + pd.Timedelta('1d')
     return start_date, end_date
 
+# TODO: Deprecate
 def create_all_site_x(df):
     assert {'connectionTime', 'disconnectTime', 'siteID'}.issubset(df.columns)
     sites = list(df.siteID.unique())
