@@ -8,6 +8,7 @@ import logging
 from src.data_preprocessing import datetime_processing, userinput_processing, holiday_processing, create_x, create_wide_y
 
 @st.cache_data
+# update to load CAISO data
 def load_data():
     df_of = pd.read_parquet('data/ACN-API/office001/').reset_index(drop=True)
     df_of = datetime_processing(df_of)
@@ -17,7 +18,7 @@ def load_data():
 # @st.cache_data
 def load_model():
 
-    model = pickle.load(open('../model.pkl', 'rb'))
+    model = pickle.load(open('model.pkl', 'rb'))
     return model
 
 sites = ['Office001','Caltech','JPL']
@@ -32,10 +33,16 @@ site = st.sidebar.selectbox('Click below to select a charger location',
                                  sites, index=0,
                                  # format_func=label
                      )
+user_preferences = ['No Preference', 'Eco-Friendly', 'Low Cost']
+user_preference = st.sidebar.selectbox('Select your preference',
+                                 user_preferences, index=0,
+                                 # format_func=label
+                     )
+
 st.sidebar.subheader('Select date')
 start_date = st.sidebar.date_input("Start date", value=datetime.datetime.today().date())
 end_date = st.sidebar.date_input("End date", value=datetime.datetime.today().date() + pd.Timedelta('1d'))
-st.sidebar.button("Run")
+#st.sidebar.button("Run")
 
 
 # st.sidebar.info('EDIT ME: This app is a simple example of '
@@ -50,9 +57,9 @@ st.sidebar.button("Run")
 
 
 st.subheader('Availability')
-model = pickle.load(open('../reg_model.pkl', 'rb'))
+model = pickle.load(open('reg_model.pkl', 'rb'))
 
-st.write(start_date, end_date)
+st.write(start_date, ' to ', end_date)
 # start_date = '2021-01-04'
 # end_date = '2021-01-06'
 # X = create_x(start=start_date, end=end_date)
@@ -66,17 +73,29 @@ X['month'] = X.index.month
 X['connectionTime'] = X.index
 X = holiday_processing(X).drop(columns=['connectionTime'])
 X['siteID'] = site2id[site]
-prediction = pd.Series(model.predict(X), index=X.index, name='% available')
+prediction = pd.Series(model.predict(X)*100, index=X.index, name='% available')
 
-# regression messes up sometimes
-prediction[prediction>1] = 1
+# regression messes up sometimes, bound the values between [0, 100]
+prediction[prediction>100] = 100
 prediction[prediction<0] = 0
 
-st.bar_chart(prediction, y='% available')
+X['% available'] = prediction
+st.bar_chart(X, x=None, y='% available', width=0)
 
+availability = ['Very Available', 'Moderate', 'Busy', 'Very Busy']
 
 st.subheader(f'How often are spots available at {site}')
-# st.text(f'Very available. Average number of open charger spots {np.round(y.mean(),1)} out of {y.max()}')
+avg_availability = np.round(X['% available'].mean(),1)
+availability_txt = ''
+if avg_availability > 90:
+    availability_txt = availability[0]
+elif avg_availability > 70:
+    availability_txt = availability[1]
+elif avg_availability > 50:
+    availability_txt = availability[2]
+else:
+    availability_txt = availability[3]
+st.text(f'{availability_txt}. Average availability: {avg_availability}%')
 st.text('More locations coming soon... ')
 
 # hist_values = np.histogram(y, bins=9, range=(0,9))[0]
