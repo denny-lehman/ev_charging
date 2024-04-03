@@ -6,6 +6,18 @@ import pickle
 import logging
 
 from src.data_preprocessing import datetime_processing, userinput_processing, holiday_processing, create_x, create_wide_y
+import src.weather as w
+import src.oasis as o
+
+
+caltech_lat = 34.134785646454844
+caltech_lon = -118.11691382579643
+
+jpl_lat = 34.20142342818471
+jpl_lon = -118.17126565774107
+
+office_lat = 37.33680466796926
+office_lon = -121.90743423142634
 
 @st.cache_data
 # update to load CAISO data
@@ -38,6 +50,16 @@ user_preference = st.sidebar.selectbox('Select your preference',
                                  user_preferences, index=0,
                                  # format_func=label
                      )
+lat, long = 0, 0
+if site == 'Office001':
+    lat, long = office_lat, office_lon
+elif site == 'Caltech':
+    lat, long = caltech_lat, caltech_lon
+elif site == 'JPL':
+    lat, long = jpl_lat, jpl_lon
+
+grid_id, grid_x, grid_y = w.get_grid_points(lat, long)
+forecast_df = w.create_forecast_df(w.get_weather_forecast(grid_id, grid_x, grid_y))
 
 st.sidebar.subheader('Select date')
 start_date = st.sidebar.date_input("Start date", value=datetime.datetime.today().date())
@@ -56,7 +78,7 @@ end_date = st.sidebar.date_input("End date", value=datetime.datetime.today().dat
 
 
 
-st.subheader('Availability')
+st.subheader(f'Availability at {site}')
 model = pickle.load(open('reg_model.pkl', 'rb'))
 
 st.write(start_date, ' to ', end_date)

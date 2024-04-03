@@ -12,9 +12,9 @@ def get_grid_points(latitude, longitude):
     print('status code:', r.status_code)
     payload = r.json()
 
-    grid_id = payload['properties']['grid_id']
-    grid_x = payload['properties']['grid_x']
-    grid_y = r.json()['properties']['grid_y']
+    grid_id = payload['properties']['gridId']
+    grid_x = payload['properties']['gridX']
+    grid_y = r.json()['properties']['gridX']
     return grid_id, grid_x, grid_y
 
 
@@ -37,6 +37,14 @@ def get_raw_weather_forecast(office, grid_x, grid_y):
     print(url)
     r = requests.get(url)
     return r.json()
+
+
+def create_forecast_df(json_forecast):
+    forecast = json_forecast['properties']['periods']
+    forecast_df = pd.DataFrame(forecast)
+    forecast_df['startTime'] = pd.to_datetime(forecast_df['startTime'], utc=True)
+    forecast_df['endTime'] = pd.to_datetime(forecast_df['endTime'], utc=True)
+    return forecast_df
 
 
 def create_hourly_forecast_df(json_forecast):
