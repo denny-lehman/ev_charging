@@ -27,7 +27,7 @@ def load_data():
     df_of = userinput_processing(df_of)
     df_of = holiday_processing(df_of)
     return df_of
-# @st.cache_data
+
 def load_model():
 
     model = pickle.load(open('model.pkl', 'rb'))
@@ -37,8 +37,15 @@ sites = ['Office001','Caltech','JPL']
 site_ids = [2,1,19]
 site2id = { k:v for (k,v) in zip(sites, site_ids)}
 
-st.title('Charge Buddy')
+st.set_page_config(page_title='Charge Buddy', page_icon=':zap:', layout='wide', initial_sidebar_state='auto')
+
+st.markdown("<h1 style='text-align: center; color: orange;'>Charge Buddy</h1>", unsafe_allow_html=True)
+#st.title('Charge Buddy')
+st.divider()
+col1, col2 = st.columns([0.7,0.3])
 st.subheader('Helping EV owners know when to charge')
+
+
 st.sidebar.title("When and where?")
 st.sidebar.subheader('Select charging site')
 site = st.sidebar.selectbox('Click below to select a charger location',
@@ -57,14 +64,27 @@ elif site == 'Caltech':
     lat, long = caltech_lat, caltech_lon
 elif site == 'JPL':
     lat, long = jpl_lat, jpl_lon
-
+print(site)
+print(lat, long)
 grid_id, grid_x, grid_y = w.get_grid_points(lat, long)
-forecast_df = w.create_forecast_df(w.get_weather_forecast(grid_id, grid_x, grid_y))
+forecast = w.get_weather_forecast(grid_id, grid_x, grid_y)
+print(forecast)
+today = datetime.datetime.today().date()
+if forecast:
+    forecast_df = w.create_forecast_df(forecast)
+    today_forecast = forecast_df.loc[forecast_df['startTime'].dt.date == today]
+else:
+    today_forecast = None
+
+
 
 st.sidebar.subheader('Select date')
-start_date = st.sidebar.date_input("Start date", value=datetime.datetime.today().date())
-end_date = st.sidebar.date_input("End date", value=datetime.datetime.today().date() + pd.Timedelta('1d'))
+start_date = st.sidebar.date_input("Start date", value=today)
+end_date = st.sidebar.date_input("End date", value=today + pd.Timedelta('1d'))
 #st.sidebar.button("Run")
+
+#st.sidebar.subheader(f'Weather Forecast for {today} at {site}:')
+
 
 
 # st.sidebar.info('EDIT ME: This app is a simple example of '
@@ -75,50 +95,62 @@ end_date = st.sidebar.date_input("End date", value=datetime.datetime.today().dat
 
 
 
+with col1:
+    st.markdown(f"<h2 style='text-align: center; color: white;'>Availability at {site} </h2>",
+                unsafe_allow_html=True)
+    #st.subheader(f'Availability at {site}')
 
+    model = pickle.load(open('reg_model.pkl', 'rb'))
 
+    st.write(start_date, ' to ', end_date)
+    # start_date = '2021-01-04'
+    # end_date = '2021-01-06'
+    # X = create_x(start=start_date, end=end_date)
 
-st.subheader(f'Availability at {site}')
-model = pickle.load(open('reg_model.pkl', 'rb'))
-
-st.write(start_date, ' to ', end_date)
-# start_date = '2021-01-04'
-# end_date = '2021-01-06'
-# X = create_x(start=start_date, end=end_date)
-
-X = pd.DataFrame(index=pd.date_range(start_date, end_date, inclusive='both', freq='h', tz=0),
+    X = pd.DataFrame(index=pd.date_range(start_date, end_date, inclusive='both', freq='h', tz=0),
                      columns=['dow', 'hour', 'month', 'siteID'])
-# X['dow'] = X.index.dt.hour
-X['dow'] = X.index.dayofweek
-X['hour'] = X.index.hour
-X['month'] = X.index.month
-X['connectionTime'] = X.index
-X = holiday_processing(X).drop(columns=['connectionTime'])
-X['siteID'] = site2id[site]
-prediction = pd.Series(model.predict(X)*100, index=X.index, name='% available')
+    # X['dow'] = X.index.dt.hour
+    X['dow'] = X.index.dayofweek
+    X['hour'] = X.index.hour
+    X['month'] = X.index.month
+    X['connectionTime'] = X.index
+    X = holiday_processing(X).drop(columns=['connectionTime'])
+    X['siteID'] = site2id[site]
+    prediction = pd.Series(model.predict(X) * 100, index=X.index, name='% available')
 
-# regression messes up sometimes, bound the values between [0, 100]
-prediction[prediction>100] = 100
-prediction[prediction<0] = 0
+    # regression messes up sometimes, bound the values between [0, 100]
+    prediction[prediction > 100] = 100
+    prediction[prediction < 0] = 0
 
-X['% available'] = prediction
-st.bar_chart(X, x=None, y='% available', width=0)
+    X['% available'] = prediction
+    st.bar_chart(X, x=None, y='% available', width=0)
 
-availability = ['Very Available', 'Moderate', 'Busy', 'Very Busy']
+    availability = ['Very Available', 'Moderate', 'Busy', 'Very Busy']
 
-st.subheader(f'How often are spots available at {site}')
-avg_availability = np.round(X['% available'].mean(),1)
-availability_txt = ''
-if avg_availability > 90:
-    availability_txt = availability[0]
-elif avg_availability > 70:
-    availability_txt = availability[1]
-elif avg_availability > 50:
-    availability_txt = availability[2]
-else:
-    availability_txt = availability[3]
-st.text(f'{availability_txt}. Average availability: {avg_availability}%')
-st.text('More locations coming soon... ')
+    st.subheader(f'How often are spots available at {site}')
+    avg_availability = np.round(X['% available'].mean(), 1)
+    availability_txt = ''
+    if avg_availability > 90:
+        availability_txt = availability[0]
+    elif avg_availability > 70:
+        availability_txt = availability[1]
+    elif avg_availability > 50:
+        availability_txt = availability[2]
+    else:
+        availability_txt = availability[3]
+    st.text(f'{availability_txt}. Average availability: {avg_availability}%')
+    st.text('More locations coming soon!')
+
+col2.column_config = {'justify': 'center'}
+with col2:
+    st.markdown(f"<h3 style='text-align: center; color: white;'>Today's Weather Forecast for {site} </h3>", unsafe_allow_html=True)
+    col2_1, col2_2 = st.columns([0.7,0.3])
+    if today_forecast is not None:
+        col2_1.metric('Temperature (F)', today_forecast['temperature'].iloc[0])
+        col2_2.image(today_forecast['icon'].iloc[0], use_column_width=False)
+        col2_1.write(today_forecast['detailedForecast'].iloc[0])
+    else:
+        col2_1.write('Unable to retrieve forecast data')
 
 # hist_values = np.histogram(y, bins=9, range=(0,9))[0]
 # st.bar_chart(hist_values)

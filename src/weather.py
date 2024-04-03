@@ -1,7 +1,7 @@
 import requests
 import pandas as pd
 import numpy as np
-
+import time
 
 def get_grid_points(latitude, longitude):
     url = f'https://api.weather.gov/points/{latitude},{longitude}'
@@ -22,6 +22,15 @@ def get_weather_forecast(office, grid_x, grid_y):
     url = f'https://api.weather.gov/gridpoints/{office}/{grid_x},{grid_y}/forecast'
     print(url)
     r = requests.get(url)
+    if r.status_code != 200:
+        for i in range(5):
+            time.sleep(0.5)
+            r = requests.get(url)
+            if r.status_code == 200:
+                break
+        if r.status_code != 200:
+            print('Failed to get weather forecast')
+            return None
     return r.json()
 
 
@@ -29,6 +38,15 @@ def get_hourly_weather_forecast(office, grid_x, grid_y):
     url = f'https://api.weather.gov/gridpoints/{office}/{grid_x},{grid_y}/forecast/hourly'
     print(url)
     r = requests.get(url)
+    if r.status_code != 200:
+        for i in range(5):
+            time.sleep(0.5)
+            r = requests.get(url)
+            if r.status_code == 200:
+                break
+        if r.status_code != 200:
+            print('Failed to get weather forecast')
+            return None
     return r.json()
 
 
@@ -36,6 +54,15 @@ def get_raw_weather_forecast(office, grid_x, grid_y):
     url = f'https://api.weather.gov/gridpoints/{office}/{grid_x},{grid_y}'
     print(url)
     r = requests.get(url)
+    if r.status_code != 200:
+        for i in range(5):
+            time.sleep(0.5)
+            r = requests.get(url)
+            if r.status_code == 200:
+                break
+        if r.status_code != 200:
+            print('Failed to get weather forecast')
+            return None
     return r.json()
 
 
