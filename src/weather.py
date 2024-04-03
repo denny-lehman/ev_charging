@@ -41,4 +41,7 @@ def get_raw_weather_forecast(office, grid_x, grid_y):
 def create_hourly_forecast_df(json_forecast):
     forecast = json_forecast['properties']['periods']
     forecast_df = pd.DataFrame(forecast)
-    return forecast_df
+    forecast_df['probabilityOfPrecipitationPercent'] = forecast_df['probabilityOfPrecipitation'].apply(lambda x: x['value'])
+    forecast_df['dewpoint_degC'] = forecast_df['dewpoint'].apply(lambda x: x['value'])
+    forecast_df['relativeHumidityPercent'] = forecast_df['relativeHumidity'].apply(lambda x: x['value'])
+    return forecast_df.drop(columns=['number', 'name', 'detailedForecast', 'dewpoint', 'probabilityOfPrecipitation', 'relativeHumidity', 'temperatureTrend'])
