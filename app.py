@@ -64,11 +64,10 @@ elif site == 'Caltech':
     lat, long = caltech_lat, caltech_lon
 elif site == 'JPL':
     lat, long = jpl_lat, jpl_lon
-print(site)
-print(lat, long)
+
 grid_id, grid_x, grid_y = w.get_grid_points(lat, long)
 forecast = w.get_weather_forecast(grid_id, grid_x, grid_y)
-print(forecast)
+
 today = datetime.datetime.today().date()
 if forecast:
     forecast_df = w.create_forecast_df(forecast)
@@ -76,16 +75,10 @@ if forecast:
 else:
     today_forecast = None
 
-
-
 st.sidebar.subheader('Select date')
 start_date = st.sidebar.date_input("Start date", value=today)
 end_date = st.sidebar.date_input("End date", value=today + pd.Timedelta('1d'))
 #st.sidebar.button("Run")
-
-#st.sidebar.subheader(f'Weather Forecast for {today} at {site}:')
-
-
 
 # st.sidebar.info('EDIT ME: This app is a simple example of '
 #                 'using Strealit to create a financial data web app.\n'
@@ -103,9 +96,6 @@ with col1:
     model = pickle.load(open('reg_model.pkl', 'rb'))
 
     st.write(start_date, ' to ', end_date)
-    # start_date = '2021-01-04'
-    # end_date = '2021-01-06'
-    # X = create_x(start=start_date, end=end_date)
 
     X = pd.DataFrame(index=pd.date_range(start_date, end_date, inclusive='both', freq='h', tz=0),
                      columns=['dow', 'hour', 'month', 'siteID'])
@@ -127,8 +117,9 @@ with col1:
 
     availability = ['Very Available', 'Moderate', 'Busy', 'Very Busy']
 
-    st.subheader(f'How often are spots available at {site}')
+    st.subheader(f'How often are spots available at {site}?')
     avg_availability = np.round(X['% available'].mean(), 1)
+
     availability_txt = ''
     if avg_availability > 90:
         availability_txt = availability[0]
@@ -138,7 +129,7 @@ with col1:
         availability_txt = availability[2]
     else:
         availability_txt = availability[3]
-    st.text(f'{availability_txt}. Average availability: {avg_availability}%')
+    st.text(f'{availability_txt}. Average availability: ' + str(avg_availability) + '%')
     st.text('More locations coming soon!')
 
 col2.column_config = {'justify': 'center'}
