@@ -20,6 +20,7 @@ jpl_lon = -118.17126565774107
 office_lat = 37.33680466796926
 office_lon = -121.90743423142634
 
+site_xy = {'Office001': (office_lat, office_lon), 'Caltech': (caltech_lat, caltech_lon), 'JPL': (jpl_lat, jpl_lon)}
 sd = o.SystemDemand()
 
 @st.cache_data
@@ -78,12 +79,36 @@ if forecast:
 else:
     today_forecast = None
 
+
+
 st.sidebar.subheader('Select date')
 start_date = st.sidebar.date_input("Start date", value=today)
 end_date = st.sidebar.date_input("End date", value=today + pd.Timedelta('1d'))
 s_ls = [int(x) for x in str(start_date).split('-')]
 e_ls = [int(x) for x in str(end_date).split('-')]
 start, end = datetime(s_ls[0], s_ls[1], s_ls[2]), datetime(e_ls[0], e_ls[1], e_ls[2])
+
+
+# function to get all forecasts for each site at session start. to be used after introducting statefulness into the app
+def get_forecasts(site):
+    lat, long = site_xy[site]
+    grid_id, grid_x, grid_y = w.get_grid_points(lat, long)
+    forecast = w.get_weather_forecast(grid_id, grid_x, grid_y)
+
+    # added this if-else because the forecast request kept failing
+    if forecast:
+        forecast_df = w.create_forecast_df(forecast)
+        today_forecast = forecast_df.loc[forecast_df['startTime'].dt.date == today]
+    else:
+        today_forecast = None
+
+    demand_forecast = sd.get_demand_forecast(start, end)
+    wind_solar_forecast = sd.get_wind_and_solar_forecast(start, end)
+    wind_solar_forecast['INTERVALSTARTTIME_GMT'] = pd.to_datetime(wind_solar_forecast['INTERVALSTARTTIME_GMT'], utc=True)
+    solar_df = wind_solar_forecast[wind_solar_forecast['RENEWABLE_TYPE'] == 'Solar']
+    wind_df = wind_solar_forecast[wind_solar_forecast['RENEWABLE_TYPE'] == 'Wind']
+    return today_forecast, demand_forecast, solar_df, wind_df
+
 if user_preference == 'Eco-Friendly':
     demand_forecast = sd.get_demand_forecast(start, end)
     wind_solar_forecast = sd.get_wind_and_solar_forecast(start, end)
