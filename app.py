@@ -100,7 +100,7 @@ if user_preference == 'Eco-Friendly':
 
 
 
-with col1:
+with (((col1))):
     st.markdown(f"<h2 style='text-align: center; color: white;'>Availability at {site} </h2>",
                 unsafe_allow_html=True)
     #st.subheader(f'Availability at {site}')
@@ -126,7 +126,7 @@ with col1:
 
     X['% available'] = prediction
 
-    availability_chart = alt.Chart(X.reset_index()).mark_bar().encode(
+    availability_chart = alt.Chart(X.reset_index()).mark_bar(size=12).encode(
         x=alt.X('index', title='Time'),
         y=alt.Y('% available', title='Availability (%)'),
     ).properties(
@@ -134,9 +134,10 @@ with col1:
         height=300
     )
     if user_preference == 'Eco-Friendly':
-        solar_chart = alt.Chart(solar_df, title='Solar Energy Forecast').mark_bar().encode(
+        solar_chart = alt.Chart(solar_df, title='Solar Energy Forecast').mark_bar(size=12).encode(
             x=alt.X('INTERVALSTARTTIME_GMT', title='Time'),
             y=alt.Y('MW', title='Solar Power (MW)'),
+            tooltip=[alt.Tooltip('INTERVALSTARTTIME_GMT', title='Time'), alt.Tooltip('MW', title='Solar Power Availabile (MW)')]
         ).properties(
             width=600,
             height=300
