@@ -87,21 +87,21 @@ end_date = st.sidebar.date_input("End date", value=today + pd.Timedelta('1d'))
 s_ls = [int(x) for x in str(start_date).split('-')]
 e_ls = [int(x) for x in str(end_date).split('-')]
 start, end = datetime(s_ls[0], s_ls[1], s_ls[2]), datetime(e_ls[0], e_ls[1], e_ls[2])
+
 if 1 == 2:
-    """
     # function to get all forecasts for each site at session start. to be used after introducting statefulness into the app
     def get_forecasts(site):
         lat, long = site_xy[site]
         grid_id, grid_x, grid_y = w.get_grid_points(lat, long)
         forecast = w.get_weather_forecast(grid_id, grid_x, grid_y)
-    
+
         # added this if-else because the forecast request kept failing
         if forecast:
             forecast_df = w.create_forecast_df(forecast)
             today_forecast = forecast_df.loc[forecast_df['startTime'].dt.date == today]
         else:
             today_forecast = None
-    
+
         demand_forecast = sd.get_demand_forecast(start, end)
         time.sleep(0.3)
         wind_solar_forecast = sd.get_wind_and_solar_forecast(start, end)
@@ -110,14 +110,14 @@ if 1 == 2:
         solar_df = wind_solar_forecast[wind_solar_forecast['RENEWABLE_TYPE'] == 'Solar']
         wind_df = wind_solar_forecast[wind_solar_forecast['RENEWABLE_TYPE'] == 'Wind']
         return today_forecast, demand_forecast, solar_df, wind_df
-    
+
     def try_forecast(site):
         today_forecast, demand_forecast, solar_df, wind_df = get_forecasts(site)
         st.session_state[f'{site}_today_forecast'] = today_forecast
         st.session_state[f'{site}_demand_forecast'] = demand_forecast
         st.session_state[f'{site}_solar_df'] = solar_df
         st.session_state[f'{site}_wind_df'] = wind_df
-    
+
     if 'key' not in st.session_state:
         st.session_state.key = 0
         for site in sites:
@@ -132,7 +132,7 @@ if 1 == 2:
                     st.session_state[f'{site}_solar_df'], \
                     st.session_state[f'{site}_wind_df']
     print(today_forecast, demand_forecast, solar_df, wind_df)
-    """
+
 if user_preference == 'Eco-Friendly':
     demand_forecast = sd.get_demand_forecast(start, end)
     wind_solar_forecast = sd.get_wind_and_solar_forecast(start, end)
@@ -149,7 +149,7 @@ if user_preference == 'Eco-Friendly':
 #                 'Check the code at https://github.com/paduel/streamlit_finance_chart')
 
 
-with (((col1))):
+with col1:
     st.markdown(f"<h2 style='text-align: center; color: white;'>Availability at {site} </h2>",
                 unsafe_allow_html=True)
     #st.subheader(f'Availability at {site}')
