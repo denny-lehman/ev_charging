@@ -3,7 +3,7 @@ import re
 import zipfile
 from datetime import datetime, timedelta
 from typing import List, Dict, TypeVar, Union, Optional, Any
-
+import time
 import pandas as pd
 import pytz
 import requests
@@ -57,7 +57,7 @@ class Oasis:
             response: requests response object
         """
 
-        resp: Response = requests.get(self.base_url, params=params, timeout=10)
+        resp: Response = requests.get(self.base_url, params=params, timeout=60)
         resp.raise_for_status()
 
         headers: str = resp.headers["content-disposition"]
@@ -347,7 +347,7 @@ class SystemDemand(Oasis):
         }
 
         resp = self.request(params)
-
+        time.sleep(5)
         return self.get_df(resp)
     def get_wind_and_solar_forecast(self, start: datetime, end: datetime) -> pd.DataFrame:
 
@@ -374,6 +374,7 @@ class SystemDemand(Oasis):
 
         resp = self.request(params)
         print(resp)
+        time.sleep(5)
         return self.get_df(resp)
 
 

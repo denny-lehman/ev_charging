@@ -7,7 +7,7 @@ def get_grid_points(latitude, longitude):
     url = f'https://api.weather.gov/points/{latitude},{longitude}'
     print(url)
 
-    r = requests.get(url)
+    r = requests.get(url, timeout=60)
 
     print('status code:', r.status_code)
     payload = r.json()
@@ -21,7 +21,7 @@ def get_grid_points(latitude, longitude):
 def get_weather_forecast(office, grid_x, grid_y):
     url = f'https://api.weather.gov/gridpoints/{office}/{grid_x},{grid_y}/forecast'
     print(url)
-    r = requests.get(url, headers={'Accept': 'application/geo+json'})
+    r = requests.get(url, headers={'Accept': 'application/geo+json'}, timeout=60)
     if r.status_code != 200:
         for i in range(2):
             time.sleep(0.3)
@@ -37,7 +37,7 @@ def get_weather_forecast(office, grid_x, grid_y):
 def get_hourly_weather_forecast(office, grid_x, grid_y):
     url = f'https://api.weather.gov/gridpoints/{office}/{grid_x},{grid_y}/forecast/hourly'
     print(url)
-    r = requests.get(url, headers={'Accept': 'application/geo+json'})
+    r = requests.get(url, headers={'Accept': 'application/geo+json'}, timeout=60)
     if r.status_code != 200:
         for i in range(2):
             time.sleep(0.3)
@@ -53,7 +53,7 @@ def get_hourly_weather_forecast(office, grid_x, grid_y):
 def get_raw_weather_forecast(office, grid_x, grid_y):
     url = f'https://api.weather.gov/gridpoints/{office}/{grid_x},{grid_y}'
     print(url)
-    r = requests.get(url, headers={'Accept': 'application/geo+json'})
+    r = requests.get(url, headers={'Accept': 'application/geo+json'}, timeout=60)
     if r.status_code != 200:
         for i in range(2):
             time.sleep(0.3)
