@@ -10,6 +10,20 @@ from src.data_preprocessing import datetime_processing, userinput_processing, ho
 import src.weather as w
 import src.oasis as o
 
+import logging
+logger = logging.getLogger(__name__)
+# logger.setLevel(logging.INFO)
+
+
+print("---------------------------")
+app_logger = logging.getLogger()
+app_logger.addHandler(logging.StreamHandler())
+app_logger.setLevel(logging.INFO)
+app_logger.info("best")
+print("---------------------------")
+logger.debug('starting app')
+test_mode = True
+logger.info(f'test mode is {test_mode}')
 
 caltech_lat = 34.134785646454844
 caltech_lon = -118.11691382579643
@@ -40,6 +54,9 @@ sites = ['Office001','Caltech','JPL']
 site_ids = [2,1,19]
 site2id = { k:v for (k,v) in zip(sites, site_ids)}
 
+site2latlon = {'Caltech':(34.134785646454844, -118.11691382579643),
+               'Office001':(37.33680466796926, -121.90743423142634),
+               'JPL':(34.20142342818471, -118.17126565774107)}
 st.set_page_config(page_title='Charge Buddy', page_icon=':zap:', layout='wide', initial_sidebar_state='auto')
 
 st.markdown("<h1 style='text-align: center; color: orange;'>Charge Buddy</h1>", unsafe_allow_html=True)
@@ -53,7 +70,6 @@ st.sidebar.title("When and where?")
 st.sidebar.subheader('Select charging site')
 site = st.sidebar.selectbox('Click below to select a charger location',
                                  sites, index=0,
-                                 # format_func=label
                      )
 user_preferences = ['No Preference', 'Eco-Friendly', 'Low Cost']
 user_preference = st.sidebar.selectbox('Select your preference',
@@ -61,12 +77,8 @@ user_preference = st.sidebar.selectbox('Select your preference',
                                  # format_func=label
                      )
 lat, long = 0, 0
-if site == 'Office001':
-    lat, long = office_lat, office_lon
-elif site == 'Caltech':
-    lat, long = caltech_lat, caltech_lon
-elif site == 'JPL':
-    lat, long = jpl_lat, jpl_lon
+lat, long = site2latlon.get(site)
+logger.info(f'lat lon selected: {lat}, {long}')
 
 grid_id, grid_x, grid_y = w.get_grid_points(lat, long)
 forecast = w.get_weather_forecast(grid_id, grid_x, grid_y)
@@ -77,6 +89,23 @@ if forecast:
     today_forecast = forecast_df.loc[forecast_df['startTime'].dt.date == today]
 else:
     today_forecast = None
+
+logger.info(f'todays forecast: {forecast_df.head()}')
+forecast_df.to_csv('data/test_forecast.csv')
+def get_weather(lat, long, test=test_mode):
+    if test:
+        return pd.read_csv('data/test_forecast')
+
+    grid_id, grid_x, grid_y = w.get_grid_points(lat, long)
+    forecast = w.get_weather_forecast(grid_id, grid_x, grid_y)
+
+    today = datetime.today().date()
+    if forecast:
+        forecast_df = w.create_forecast_df(forecast)
+        today_forecast = forecast_df.loc[forecast_df['startTime'].dt.date == today]
+    else:
+        today_forecast = None
+    return forecast_df
 
 st.sidebar.subheader('Select date')
 start_date = st.sidebar.date_input("Start date", value=today)
@@ -170,9 +199,10 @@ with col2:
     st.markdown(f"<h3 style='text-align: center; color: white;'>Today's Weather Forecast for {site} </h3>", unsafe_allow_html=True)
     col2_1, col2_2 = st.columns([0.7,0.3])
     if today_forecast is not None:
-        col2_1.metric('Temperature (F)', today_forecast['temperature'].iloc[0])
-        col2_2.image(today_forecast['icon'].iloc[0], use_column_width=False)
-        col2_1.write(today_forecast['detailedForecast'].iloc[0])
+        # col2_1.metric('Temperature (F)', today_forecast['temperature'].iloc[0])
+        # col2_2.image(today_forecast['icon'].iloc[0], use_column_width=False)
+        # col2_1.write(today_forecast['detailedForecast'].iloc[0])
+        1==1
     else:
         col2_1.write('Unable to retrieve forecast data')
 
