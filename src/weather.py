@@ -14,7 +14,7 @@ def get_grid_points(latitude, longitude):
 
     grid_id = payload['properties']['gridId']
     grid_x = payload['properties']['gridX']
-    grid_y = r.json()['properties']['gridX']
+    grid_y = r.json()['properties']['gridY']
     return grid_id, grid_x, grid_y
 
 
