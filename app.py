@@ -150,15 +150,15 @@ if 'key' not in st.session_state:
     for site in sites:
         try_forecast(site)
 else:
-    print(st.session_state.key)
-    if any(st.session_state[f'{site}_today_forecast'] is None for site in sites):
-        for site in sites:
-            try_forecast(site)
-    else:
-        today_forecast, demand_forecast, solar_df, wind_df = st.session_state[f'{site}_today_forecast'], \
-            st.session_state[f'{site}_demand_forecast'], \
-            st.session_state[f'{site}_solar_df'], \
-            st.session_state[f'{site}_wind_df']
+    # print(st.session_state.key)
+    # if any(st.session_state[f'{site}_today_forecast'] is None for site in sites):
+    #    for site in sites:
+    #        try_forecast(site)
+    # else:
+    today_forecast, demand_forecast, solar_df, wind_df = st.session_state[f'{site}_today_forecast'], \
+        st.session_state[f'{site}_demand_forecast'], \
+        st.session_state[f'{site}_solar_df'], \
+        st.session_state[f'{site}_wind_df']
 print(today_forecast, demand_forecast, solar_df, wind_df)
 
 #if user_preference == 'Eco-Friendly':
@@ -252,3 +252,5 @@ with col2:
         col2_1.write(today_forecast['detailedForecast'].iloc[0])
     else:
         col2_1.write('Unable to retrieve forecast data')
+        if col2_1.button('Retry'):
+            try_forecast(site)
