@@ -51,7 +51,7 @@ def load_model():
 sites = ['Office001', 'Caltech', 'JPL']
 site_ids = [2, 1, 19]
 site2id = {k: v for (k, v) in zip(sites, site_ids)}
-today_forecast, demand_forecast, solar_df, wind_df = None, None, None, None
+today_forecast, demand_forecast, solar_df, wind_df, pricing = None, None, None, None, None
 st.set_page_config(page_title='Charge Buddy', page_icon=':zap:', layout='wide', initial_sidebar_state='auto')
 
 # title in markdown to allow for styling and positioning
@@ -61,7 +61,7 @@ st.markdown("<h1 style='text-align: center; color: orange;'>Charge Buddy</h1>", 
 st.divider()
 
 # create columns for layout of the app (1st column is 70% of the page, 2nd column is 30%)
-col1, col2 = st.columns([0.7, 0.3])
+col1, col2 = st.columns([0.8, 0.2])
 
 # create a tagline for the app
 st.subheader('Helping EV owners find the best time to charge')
@@ -75,11 +75,10 @@ site = st.sidebar.selectbox('Click below to select a charger location',
                             sites, index=1,
                             )
 
-# create a dropdown menu for the user to select a preference
-user_preferences = ['No Preference', 'Eco-Friendly', 'Low Cost']
-user_preference = st.sidebar.selectbox('Select your preference',
-                                       user_preferences, index=0,
-                                       )
+# create a user preference checkbox selection
+st.sidebar.subheader('Select your preference')
+eco = st.sidebar.checkbox('Eco-Friendly')
+cost = st.sidebar.checkbox('Low Cost')
 if 1 == 2:
     # code to set up API calls for a selected site
     lat, long = 0, 0
@@ -107,6 +106,7 @@ end_date = st.sidebar.date_input("End date", value=today + pd.Timedelta('1d'))
 s_ls = [int(x) for x in str(start_date).split('-')]
 e_ls = [int(x) for x in str(end_date).split('-')]
 start, end = datetime(s_ls[0], s_ls[1], s_ls[2]), datetime(e_ls[0], e_ls[1], e_ls[2])
+
 
 def get_tou_pricing(site, start, end):
     pricing = pd.DataFrame(index=pd.date_range(start, end, inclusive='both', freq='h', tz=0), columns=['price'])
@@ -186,7 +186,6 @@ else:
         st.session_state[f'{site}_demand_forecast'], \
         st.session_state[f'{site}_solar_df'], \
         st.session_state[f'{site}_wind_df']
-print(today_forecast, demand_forecast, solar_df, wind_df)
 
 #if user_preference == 'Eco-Friendly':
 #    demand_forecast = sd.get_demand_forecast(start, end)
@@ -204,15 +203,15 @@ print(today_forecast, demand_forecast, solar_df, wind_df)
 #                 'Check the code at https://github.com/paduel/streamlit_finance_chart')
 
 pricing = get_tou_pricing(site, start, end)
-
 # populate main column with availability chart
+col1.column_config = {'justify': 'center'}
 with col1:
     st.markdown(f"<h2 style='text-align: center; color: white;'>Availability at {site} </h2>",
                 unsafe_allow_html=True)
 
     model = pickle.load(open('reg_model.pkl', 'rb'))
 
-    st.write(start_date, ' to ', end_date)
+    st.write('Availability from ', start_date, ' to ', end_date)
 
     X = pd.DataFrame(index=pd.date_range(start_date, end_date, inclusive='both', freq='h', tz=0),
                      columns=['dow', 'hour', 'month', 'siteID'])
@@ -231,36 +230,49 @@ with col1:
 
     X['% available'] = prediction
 
-    availability_chart = alt.Chart(X.reset_index()).mark_bar(size=12).encode(
+    brush = alt.selection(type='interval', encodings=['x'])
+    solar_brush = alt.selection(type='interval', encodings=['x'])
+
+    availability_chart = alt.Chart(X.reset_index()).mark_bar(size=15).encode(
         x=alt.X('index', title='Time'),
         y=alt.Y('% available', title='Availability (%)'),
+        tooltip=[alt.Tooltip('index', title='Time'),
+                 alt.Tooltip('% available', title='Availability (%)')],
+        color=alt.condition(brush, alt.value('steelblue'), alt.value('lightgray'))
     ).properties(
-        width=600,
-        height=300
-    )
+        width=1000,
+        height=250
+    ).add_params(brush)
 
     pricing_chart = alt.Chart(pricing.reset_index(), title='Pricing').mark_line().encode(
         x=alt.X('index', title='Time'),
         y=alt.Y('price', title='Price ($/kWh)'),
+        tooltip=[alt.Tooltip('index', title='Time'),
+                 alt.Tooltip('price', title='Price ($/kWh)')],
+        color=alt.condition(brush, alt.value('steelblue'), alt.value('lightgray'))
     ).properties(
-        width=600,
-        height=300
-    )
+        width=1000,
+        height=250
+    ).add_params(brush).transform_filter(brush)
 
-    if user_preference == 'Eco-Friendly':
-        solar_chart = alt.Chart(solar_df.reset_index(), title='Solar Energy Forecast').mark_bar(size=12).encode(
-            x=alt.X('INTERVALSTARTTIME_GMT', title='Time'),
-            y=alt.Y('MW', title='Solar Power (MW)'),
-            tooltip=[alt.Tooltip('INTERVALSTARTTIME_GMT', title='Time'),
-                     alt.Tooltip('MW', title='Solar Power Availabile (MW)')]
-        ).properties(
-            width=600,
-            height=300
-        )
-        combined = alt.vconcat(availability_chart, solar_chart, pricing_chart).resolve_scale(x='shared')
-        st.altair_chart(combined)
-    else:
+    solar_chart = alt.Chart(solar_df.reset_index(), title='Solar Energy Forecast').mark_bar(size=15).encode(
+        x=alt.X('INTERVALSTARTTIME_GMT', title='Time'),
+        y=alt.Y('MW', title='Solar Power (MW)'),
+        tooltip=[alt.Tooltip('INTERVALSTARTTIME_GMT', title='Time'),
+                 alt.Tooltip('MW', title='Solar Power Availabile (MW)')],
+        color=alt.condition(solar_brush, alt.value('green'), alt.value('lightgray'))
+    ).properties(
+        width=1000,
+        height=250
+    ).add_params(solar_brush)
+    if eco & cost:
+        st.altair_chart(alt.vconcat(availability_chart, pricing_chart, solar_chart).resolve_scale(x='shared'))
+    elif eco:
+        st.altair_chart(alt.vconcat(availability_chart, solar_chart).resolve_scale(x='shared'))
+    elif cost:
         st.altair_chart(alt.vconcat(availability_chart, pricing_chart).resolve_scale(x='shared'))
+    else:
+        st.altair_chart(availability_chart)
 
     availability = ['Very Available', 'Moderate', 'Busy', 'Very Busy']
 
@@ -279,11 +291,11 @@ with col1:
     st.text(f'{availability_txt}. Average availability: ' + str(avg_availability) + '%')
     st.text('More locations coming soon!')
 
-col2.column_config = {'justify': 'center'}
+col2.column_config = {'justify': 'right'}
 with col2:
-    st.markdown(f"<h3 style='text-align: center; color: white;'>Today's Weather Forecast for {site} </h3>",
+    st.markdown(f"<h3 style='text-align: center; color: white;'>Weather Forecast for {site} {today_forecast['name'].iloc[0]} </h3>",
                 unsafe_allow_html=True)
-    col2_1, col2_2 = st.columns([0.7, 0.3])
+    col2_1, col2_2 = st.columns([0.5, 0.5])
     if today_forecast is not None:
         col2_1.metric('Temperature (F)', today_forecast['temperature'].iloc[0])
         col2_2.image(today_forecast['icon'].iloc[0], use_column_width=False)
