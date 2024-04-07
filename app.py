@@ -72,7 +72,7 @@ st.sidebar.subheader('Select charging site')
 
 # create a dropdown menu for the user to select a site
 site = st.sidebar.selectbox('Click below to select a charger location',
-                            sites, index=0,
+                            sites, index=1,
                             )
 
 # create a dropdown menu for the user to select a preference
@@ -107,6 +107,33 @@ end_date = st.sidebar.date_input("End date", value=today + pd.Timedelta('1d'))
 s_ls = [int(x) for x in str(start_date).split('-')]
 e_ls = [int(x) for x in str(end_date).split('-')]
 start, end = datetime(s_ls[0], s_ls[1], s_ls[2]), datetime(e_ls[0], e_ls[1], e_ls[2])
+
+def get_tou_pricing(site, start, end):
+    pricing = pd.DataFrame(index=pd.date_range(start, end, inclusive='both', freq='h', tz=0), columns=['price'])
+    if site == 'Office001':
+        for i in list(pricing.index):
+            # super off-peak
+            if i.hour in range(9, 14):
+                pricing.loc[i, 'price'] = 0.18
+            # peak
+            elif i.hour in range(16, 22):
+                pricing.loc[i, 'price'] = 0.40
+            # off-peak
+            else:
+                pricing.loc[i, 'price'] = 0.20
+    else:
+        for i in list(pricing.index):
+            # super off-peak
+            if i.hour in range(9, 14):
+                pricing.loc[i, 'price'] = 0.12
+            # peak
+            elif i.hour in range(16, 22):
+                pricing.loc[i, 'price'] = 0.40
+            # off-peak
+            else:
+                pricing.loc[i, 'price'] = 0.14
+
+    return pricing
 
 
 # function to get all forecasts for each site at session start. to be used after introducting statefulness into the app
@@ -176,6 +203,8 @@ print(today_forecast, demand_forecast, solar_df, wind_df)
 #                 'https://twitter.com/paduel_py).\n\n'
 #                 'Check the code at https://github.com/paduel/streamlit_finance_chart')
 
+pricing = get_tou_pricing(site, start, end)
+
 # populate main column with availability chart
 with col1:
     st.markdown(f"<h2 style='text-align: center; color: white;'>Availability at {site} </h2>",
@@ -209,8 +238,17 @@ with col1:
         width=600,
         height=300
     )
+
+    pricing_chart = alt.Chart(pricing.reset_index(), title='Pricing').mark_line().encode(
+        x=alt.X('index', title='Time'),
+        y=alt.Y('price', title='Price ($/kWh)'),
+    ).properties(
+        width=600,
+        height=300
+    )
+
     if user_preference == 'Eco-Friendly':
-        solar_chart = alt.Chart(solar_df, title='Solar Energy Forecast').mark_bar(size=12).encode(
+        solar_chart = alt.Chart(solar_df.reset_index(), title='Solar Energy Forecast').mark_bar(size=12).encode(
             x=alt.X('INTERVALSTARTTIME_GMT', title='Time'),
             y=alt.Y('MW', title='Solar Power (MW)'),
             tooltip=[alt.Tooltip('INTERVALSTARTTIME_GMT', title='Time'),
@@ -219,10 +257,10 @@ with col1:
             width=600,
             height=300
         )
-        combined = alt.vconcat(availability_chart, solar_chart).resolve_scale(x='shared')
+        combined = alt.vconcat(availability_chart, solar_chart, pricing_chart).resolve_scale(x='shared')
         st.altair_chart(combined)
     else:
-        st.altair_chart(availability_chart)
+        st.altair_chart(alt.vconcat(availability_chart, pricing_chart).resolve_scale(x='shared'))
 
     availability = ['Very Available', 'Moderate', 'Busy', 'Very Busy']
 
