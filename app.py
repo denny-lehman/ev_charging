@@ -12,8 +12,20 @@ from src.data_preprocessing import datetime_processing, userinput_processing, ho
 import src.weather as w
 import src.oasis as o
 
-# establish debugging log
-logging.basicConfig(level=logging.DEBUG)
+import logging
+logger = logging.getLogger(__name__)
+# logger.setLevel(logging.INFO)
+
+
+print("---------------------------")
+app_logger = logging.getLogger()
+app_logger.addHandler(logging.StreamHandler())
+app_logger.setLevel(logging.INFO)
+app_logger.info("best")
+print("---------------------------")
+logger.debug('starting app')
+test_mode = True
+logger.info(f'test mode is {test_mode}')
 
 # define locations
 caltech_lat = 34.134785646454844
@@ -33,7 +45,7 @@ sd = o.SystemDemand()
 
 
 @st.cache_data
-# update to load CAISO data TODO: remove this function
+# update to load CAISO data
 def load_data():
     df_of = pd.read_parquet('data/ACN-API/office001/').reset_index(drop=True)
     df_of = datetime_processing(df_of)
@@ -46,12 +58,19 @@ def load_model():
     model = pickle.load(open('model.pkl', 'rb'))
     return model
 
+sites = ['Office001','Caltech','JPL']
+site_ids = [2,1,19]
+site2id = { k:v for (k,v) in zip(sites, site_ids)}
 
+site2latlon = {'Caltech':(34.134785646454844, -118.11691382579643),
+               'Office001':(37.33680466796926, -121.90743423142634),
+               'JPL':(34.20142342818471, -118.17126565774107)}
 # create site list and site2id dictionary
 sites = ['Office001', 'Caltech', 'JPL']
 site_ids = [2, 1, 19]
 site2id = {k: v for (k, v) in zip(sites, site_ids)}
 today_forecast, demand_forecast, solar_df, wind_df, pricing = None, None, None, None, None
+
 st.set_page_config(page_title='Charge Buddy', page_icon=':zap:', layout='wide', initial_sidebar_state='auto')
 
 # title in markdown to allow for styling and positioning
@@ -75,19 +94,31 @@ site = st.sidebar.selectbox('Click below to select a charger location',
                             sites, index=1,
                             )
 
-# create a user preference checkbox selection
-st.sidebar.subheader('Select your preference')
-eco = st.sidebar.checkbox('Eco-Friendly')
-cost = st.sidebar.checkbox('Low Cost')
-if 1 == 2:
-    # code to set up API calls for a selected site
-    lat, long = 0, 0
-    if site == 'Office001':
-        lat, long = office_lat, office_lon
-    elif site == 'Caltech':
-        lat, long = caltech_lat, caltech_lon
-    elif site == 'JPL':
-        lat, long = jpl_lat, jpl_lon
+# create a dropdown menu for the user to select a preference
+user_preferences = ['No Preference', 'Eco-Friendly', 'Low Cost']
+user_preference = st.sidebar.selectbox('Select your preference',
+                                       user_preferences, index=0,
+                                       )
+lat, long = 0, 0
+lat, long = site2latlon.get(site)
+logger.info(f'lat lon selected: {lat}, {long}')
+
+grid_id, grid_x, grid_y = w.get_grid_points(lat, long)
+forecast = w.get_weather_forecast(grid_id, grid_x, grid_y)
+
+today = datetime.today().date()
+if forecast:
+    forecast_df = w.create_forecast_df(forecast)
+    today_forecast = forecast_df.loc[forecast_df['startTime'].dt.date == today]
+else:
+    today_forecast = None
+
+logger.info(f'todays forecast: {forecast_df.head()}')
+forecast_df.to_csv('data/test_forecast.csv')
+def get_weather(lat, long, test=test_mode):
+    if test:
+        return pd.read_csv('data/test_forecast')
+
 
     grid_id, grid_x, grid_y = w.get_grid_points(lat, long)
     forecast = w.get_weather_forecast(grid_id, grid_x, grid_y)
@@ -98,8 +129,8 @@ if 1 == 2:
         today_forecast = forecast_df.loc[forecast_df['startTime'].dt.date == today]
     else:
         today_forecast = None
+    return forecast_df
 
-today = datetime.today().date()
 st.sidebar.subheader('Select date')
 start_date = st.sidebar.date_input("Start date", value=today)
 end_date = st.sidebar.date_input("End date", value=today + pd.Timedelta('1d'))
@@ -208,6 +239,7 @@ col1.column_config = {'justify': 'center'}
 with col1:
     st.markdown(f"<h2 style='text-align: center; color: white;'>Availability at {site} </h2>",
                 unsafe_allow_html=True)
+    #st.subheader(f'Availability at {site}')
 
     model = pickle.load(open('reg_model.pkl', 'rb'))
 

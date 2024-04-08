@@ -92,14 +92,30 @@ def create_hourly_forecast_df(json_forecast):
     forecast_df['dewpoint_degF'] = forecast_df['dewpoint_degC'].apply(lambda x: np.round(x * 9.0 / 5.0 + 32, 2))
 
     # extract value from windSpeed column and convert to int
-    forecast_df['windSpeed_mph'] = forecast_df['windSpeed'].apply(lambda x: int(x.split(" mph")[0]))
+    forecast_df['wind_speed_mph'] = forecast_df['windSpeed'].apply(lambda x: int(x.split(" mph")[0]))
 
     # extract value from json formatted columns
     forecast_df['probabilityOfPrecipitationPercent'] = forecast_df['probabilityOfPrecipitation'].apply(
         lambda x: x['value'])
-    forecast_df['relativeHumidityPercent'] = forecast_df['relativeHumidity'].apply(lambda x: x['value'])
+    forecast_df['relative_humidity_%'] = forecast_df['relativeHumidity'].apply(lambda x: x['value'])
 
     # drop columns that are no longer needed
     return forecast_df.drop(
         columns=['startTime', 'endTime', 'windSpeed', 'number', 'name', 'detailedForecast', 'dewpoint',
                  'probabilityOfPrecipitation', 'relativeHumidity', 'temperatureTrend', 'temperatureUnit'])
+
+def get_processed_hourly_7day_weather(latitude:float, longitude:float, test_mode:bool=False) -> pd.DataFrame:
+    """given the latitude and longitude of a site, return a processed dataframe of the hourly weather. This is a orchestrator function
+    args:
+        latitude: float - the latitude of the site
+        longitude: float - the longitude of the site
+        test_mode: bool - if test mode is true, pull stored data from disk, otherwise call the apis
+    returns
+        weather_df: pd.DataFrame - the processed dataframe of the hourly 7day weather for that site
+    """
+    if test_mode:
+        return pd.DataFrame({})
+    office, grid_x, grid_y = get_grid_points(latitude, longitude)
+    weather_json = get_hourly_weather_forecast(office, grid_x, grid_y)
+    weather_df = create_hourly_forecast_df(weather_json)
+    return weather_df
