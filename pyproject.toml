@@ -10,6 +10,7 @@ package-mode = false
 python = "^3.10"
 xgboost = "2.0.3"
 streamlit = "^1.33.0"
+scikit-learn = "^1.4.2"
 
 
 [build-system]
