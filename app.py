@@ -44,14 +44,14 @@ site_xy = {'Office001': (office_lat, office_lon), 'Caltech': (caltech_lat, calte
 sd = o.SystemDemand()
 
 
-@st.cache_data
-# update to load CAISO data
-def load_data():
-    df_of = pd.read_parquet('data/ACN-API/office001/').reset_index(drop=True)
-    df_of = datetime_processing(df_of)
-    df_of = userinput_processing(df_of)
-    df_of = holiday_processing(df_of)
-    return df_of
+# @st.cache_data
+# to load CAISO data
+# def load_data():
+    # df_of = pd.read_parquet('data/ACN-API/office001/').reset_index(drop=True)
+    # df_of = datetime_processing(df_of)
+    # df_of = userinput_processing(df_of)
+    # df_of = holiday_processing(df_of)
+    # return df_of
 
 @st.cache_resource
 def load_model():
@@ -100,22 +100,22 @@ user_preferences = ['No Preference', 'Eco-Friendly', 'Low Cost']
 user_preference = st.sidebar.selectbox('Select your preference',
                                        user_preferences, index=0,
                                        )
-lat, long = 0, 0
-lat, long = site2latlon.get(site)
-logger.info(f'lat lon selected: {lat}, {long}')
+# lat, long = 0, 0
+# lat, long = site2latlon.get(site)
+# logger.info(f'lat lon selected: {lat}, {long}')
 
-grid_id, grid_x, grid_y = w.get_grid_points(lat, long)
-forecast = w.get_weather_forecast(grid_id, grid_x, grid_y)
+# grid_id, grid_x, grid_y = w.get_grid_points(lat, long)
+# forecast = w.get_weather_forecast(grid_id, grid_x, grid_y)
 
 today = datetime.today().date()
-if forecast:
-    forecast_df = w.create_forecast_df(forecast)
-    today_forecast = forecast_df.loc[forecast_df['startTime'].dt.date == today]
-else:
-    today_forecast = None
+# if forecast:
+    # forecast_df = w.create_forecast_df(forecast)
+    # today_forecast = forecast_df.loc[forecast_df['startTime'].dt.date == today]
+# else:
+    # today_forecast = None
 
-logger.info(f'todays forecast: {forecast_df.head()}')
-forecast_df.to_csv('data/test_forecast.csv')
+# logger.info(f'todays forecast: {forecast_df.head()}')
+# forecast_df.to_csv('data/test_forecast.csv')
 
 @st.cache_data
 def get_weather(lat, long, test=test_mode):
@@ -172,59 +172,55 @@ def get_tou_pricing(site, start, end):
 
 
 # function to get all forecasts for each site at session start. to be used after introducting statefulness into the app
-# def get_forecasts(site):
-#     lat, long = site_xy[site]
-#     grid_id, grid_x, grid_y = w.get_grid_points(lat, long)
-#     forecast = w.get_weather_forecast(grid_id, grid_x, grid_y)
-#
-#     # added this if-else because the forecast request kept failing
-#     if forecast:
-#         forecast_df = w.create_forecast_df(forecast)
-#         today_forecast = forecast_df.loc[forecast_df['startTime'].dt.date == today]
-#     else:
-#         today_forecast = None
-#
-#     # adding logic to prevent redundant API calls since Caltech and JPL are in the same location
-#     if site != 'JPL':
-#         demand_forecast = sd.get_demand_forecast(start, end)
-#         wind_solar_forecast = sd.get_wind_and_solar_forecast(start, end)
-#         wind_solar_forecast['INTERVALSTARTTIME_GMT'] = pd.to_datetime(wind_solar_forecast['INTERVALSTARTTIME_GMT'],
-#                                                                       utc=True)
-#         solar_df = wind_solar_forecast[wind_solar_forecast['RENEWABLE_TYPE'] == 'Solar']
-#         wind_df = wind_solar_forecast[wind_solar_forecast['RENEWABLE_TYPE'] == 'Wind']
-#         st.session_state[f'{site}_today_forecast'] = today_forecast
-#         st.session_state[f'{site}_demand_forecast'] = demand_forecast
-#         st.session_state[f'{site}_solar_df'] = solar_df
-#         st.session_state[f'{site}_wind_df'] = wind_df
-#
-#     else:
-#         demand_forecast = st.session_state['Caltech_demand_forecast']
-#         solar_df = st.session_state['Caltech_solar_df']
-#         wind_df = st.session_state['Caltech_wind_df']
-#     return today_forecast, demand_forecast, solar_df, wind_df
-#
+def get_forecasts(site):
+    lat, long = site_xy[site]
+    grid_id, grid_x, grid_y = w.get_grid_points(lat, long)
+    forecast = w.get_weather_forecast(grid_id, grid_x, grid_y)
+
+    # added this if-else because the forecast request kept failing
+    if forecast:
+        forecast_df = w.create_forecast_df(forecast)
+        today_forecast = forecast_df.loc[forecast_df['startTime'].dt.date == today]
+    else:
+        today_forecast = None
+
+    # adding logic to prevent redundant API calls since Caltech and JPL are in the same location
+    if site != 'JPL':
+        demand_forecast = sd.get_demand_forecast(start, end)
+        wind_solar_forecast = sd.get_wind_and_solar_forecast(start, end)
+        wind_solar_forecast['INTERVALSTARTTIME_GMT'] = pd.to_datetime(wind_solar_forecast['INTERVALSTARTTIME_GMT'],
+                                                                      utc=True)
+        solar_df = wind_solar_forecast[wind_solar_forecast['RENEWABLE_TYPE'] == 'Solar']
+        wind_df = wind_solar_forecast[wind_solar_forecast['RENEWABLE_TYPE'] == 'Wind']
+    else:
+        demand_forecast = st.session_state['Caltech_demand_forecast']
+        solar_df = st.session_state['Caltech_solar_df']
+        wind_df = st.session_state['Caltech_wind_df']
+    return today_forecast, demand_forecast, solar_df, wind_df
+
 #
 def try_forecast(site):
     today_forecast, demand_forecast, solar_df, wind_df = get_forecasts(site)
-    today_forecast, demand_forecast, solar_df, wind_df = st.session_state[f'today_forecast'], \
-        st.session_state[f'demand_forecast'], \
-        st.session_state[f'solar_df'], \
-        st.session_state[f'wind_df']
+    st.session_state[f'{site}_today_forecast'] = today_forecast
+    st.session_state[f'{site}_demand_forecast'] = demand_forecast
+    st.session_state[f'{site}_solar_df'] = solar_df
+    st.session_state[f'{site}_wind_df'] = wind_df
 
-    # if 'key' not in st.session_state:
-    #     st.session_state.key = 0
-    #     for site in sites:
-    #         try_forecast(site)
+
+if 'key' not in st.session_state:
+    st.session_state.key = 0
+    for site in sites:
+        try_forecast(site)
+else:
+    # print(st.session_state.key)
+    # if any(st.session_state[f'{site}_today_forecast'] is None for site in sites):
+    #    for site in sites:
+    #        try_forecast(site)
     # else:
-    #     # print(st.session_state.key)
-    #     # if any(st.session_state[f'{site}_today_forecast'] is None for site in sites):
-    #     #    for site in sites:
-    #     #        try_forecast(site)
-    #     # else:
-    #     today_forecast, demand_forecast, solar_df, wind_df = st.session_state[f'{site}_today_forecast'], \
-    #         st.session_state[f'{site}_demand_forecast'], \
-    #         st.session_state[f'{site}_solar_df'], \
-    #         st.session_state[f'{site}_wind_df']
+    today_forecast, demand_forecast, solar_df, wind_df = st.session_state[f'{site}_today_forecast'], \
+        st.session_state[f'{site}_demand_forecast'], \
+        st.session_state[f'{site}_solar_df'], \
+        st.session_state[f'{site}_wind_df']
 
 #if user_preference == 'Eco-Friendly':
 #    demand_forecast = sd.get_demand_forecast(start, end)
@@ -234,6 +230,16 @@ def try_forecast(site):
 #    solar_df = wind_solar_forecast[wind_solar_forecast['RENEWABLE_TYPE'] == 'Solar']
 #    wind_df = wind_solar_forecast[wind_solar_forecast['RENEWABLE_TYPE'] == 'Wind']
 
+
+#st.sidebar.info('EDIT ME: This app is a simple example of '
+#                 'using Streamlit to create a financial data web app.\n'
+#                 '\nIt is maintained by [Paduel]('
+#                 'https://twitter.com/paduel_py).\n\n'
+#                 'Check the code at https://github.com/paduel/streamlit_finance_chart')
+if user_preference == 'Eco-Friendly':
+   eco = True
+else:
+    eco = False
 
 #st.sidebar.info('EDIT ME: This app is a simple example of '
 #                 'using Streamlit to create a financial data web app.\n'
@@ -296,22 +302,23 @@ with col1:
         height=250
     ).add_params(brush).transform_filter(brush)
 
-    solar_chart = alt.Chart(solar_df.reset_index(), title='Solar Energy Forecast').mark_bar(size=15).encode(
-        x=alt.X('INTERVALSTARTTIME_GMT', title='Time'),
-        y=alt.Y('MW', title='Solar Power (MW)'),
-        tooltip=[alt.Tooltip('INTERVALSTARTTIME_GMT', title='Time'),
-                 alt.Tooltip('MW', title='Solar Power Availabile (MW)')],
-        color=alt.condition(solar_brush, alt.value('green'), alt.value('lightgray'))
-    ).properties(
-        width=1000,
-        height=250
-    ).add_params(solar_brush)
-    if eco & cost:
-        st.altair_chart(alt.vconcat(availability_chart, pricing_chart, solar_chart).resolve_scale(x='shared'))
-    elif eco:
+
+    # if eco & cost:
+        # st.altair_chart(alt.vconcat(availability_chart, pricing_chart, solar_chart).resolve_scale(x='shared'))
+    if eco:
+        solar_chart = alt.Chart(solar_df.reset_index(), title='Solar Energy Forecast').mark_bar(size=15).encode(
+            x=alt.X('INTERVALSTARTTIME_GMT', title='Time'),
+            y=alt.Y('MW', title='Solar Power (MW)'),
+            tooltip=[alt.Tooltip('INTERVALSTARTTIME_GMT', title='Time'),
+                     alt.Tooltip('MW', title='Solar Power Availabile (MW)')],
+            color=alt.condition(solar_brush, alt.value('green'), alt.value('lightgray'))
+            ).properties(
+            width=1000,
+            height=250
+            ).add_params(solar_brush)
         st.altair_chart(alt.vconcat(availability_chart, solar_chart).resolve_scale(x='shared'))
-    elif cost:
-        st.altair_chart(alt.vconcat(availability_chart, pricing_chart).resolve_scale(x='shared'))
+    # elif cost:
+        # st.altair_chart(alt.vconcat(availability_chart, pricing_chart).resolve_scale(x='shared'))
     else:
         st.altair_chart(availability_chart)
 
