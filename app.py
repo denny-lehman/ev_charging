@@ -48,7 +48,6 @@ sd = o.SystemDemand()
 
 #get today's datetime
 today = datetime.today().date()
-tomorrow = today + pd.Timedelta('1d')
 
 # @st.cache_data
 # to load CAISO data
@@ -141,6 +140,10 @@ s_ls = [int(x) for x in str(start_date).split('-')]
 e_ls = [int(x) for x in str(end_date).split('-')]
 start, end = datetime(s_ls[0], s_ls[1], s_ls[2]), datetime(e_ls[0], e_ls[1], e_ls[2])
 
+range_start_ls = [int(x) for x in str(today).split('-')]
+range_end_ls = [int(x) for x in str(today + pd.Timedelta('7d')).split('-')]
+range_start = datetime(range_start_ls[0], range_start_ls[1], range_start_ls[2])
+range_end = datetime(range_end_ls[0], range_end_ls[1], range_end_ls[2])
 
 def get_tou_pricing(site, start, end):
     pricing = pd.DataFrame(index=pd.date_range(start, end, inclusive='both', freq='h', tz=0), columns=['price'])
@@ -177,8 +180,8 @@ def get_forecasts(site):
     today_forecast = get_weather(lat, long, test=False)
     # adding logic to prevent redundant API calls since Caltech and JPL are in the same location
     if site != 'JPL':
-        demand_forecast = sd.get_demand_forecast(start, end)
-        wind_solar_forecast = sd.get_wind_and_solar_forecast(start, end)
+        demand_forecast = sd.get_demand_forecast(range_start, range_end)
+        wind_solar_forecast = sd.get_wind_and_solar_forecast(range_start, range_end)
         wind_solar_forecast['INTERVALSTARTTIME_GMT'] = pd.to_datetime(wind_solar_forecast['INTERVALSTARTTIME_GMT'],
                                                                       utc=True)
         solar_df = wind_solar_forecast[wind_solar_forecast['RENEWABLE_TYPE'] == 'Solar']
@@ -250,9 +253,10 @@ with col1:
 
     brush = alt.selection(type='interval', encodings=['x'])
     solar_brush = alt.selection(type='interval', encodings=['x'])
+    scale = alt.Scale(domain=[pd.to_datetime(start_date), pd.to_datetime(end_date)])
 
     availability_chart = alt.Chart(X.reset_index()).mark_bar(size=15).encode(
-        x=alt.X('index', title='Time'),
+        x=alt.X('index:T', title='Time'),
         y=alt.Y('% available', title='Availability (%)'),
         tooltip=[alt.Tooltip('index', title='Time'),
                  alt.Tooltip('% available', title='Availability (%)')],
@@ -263,7 +267,7 @@ with col1:
     ).add_params(brush)
 
     pricing_chart = alt.Chart(pricing.reset_index(), title='Pricing').mark_line().encode(
-        x=alt.X('index', title='Time'),
+        x=alt.X('index:T', title='Time'),
         y=alt.Y('price', title='Price ($/kWh)'),
         tooltip=[alt.Tooltip('index', title='Time'),
                  alt.Tooltip('price', title='Price ($/kWh)')],
@@ -274,7 +278,7 @@ with col1:
     ).add_params(brush).transform_filter(brush)
 
     solar_chart = alt.Chart(solar_df.reset_index(), title='Solar Energy Forecast').mark_bar(size=15).encode(
-        x=alt.X('INTERVALSTARTTIME_GMT', title='Time'),
+        x=alt.X('INTERVALSTARTTIME_GMT:T', title='Time'),
         y=alt.Y('MW', title='Solar Power (MW)'),
         tooltip=[alt.Tooltip('INTERVALSTARTTIME_GMT', title='Time'),
                  alt.Tooltip('MW', title='Solar Power Availabile (MW)')],
@@ -286,7 +290,7 @@ with col1:
 
     if eco & cost:
         st.altair_chart(alt.vconcat(availability_chart, pricing_chart, solar_chart).resolve_scale(x='shared'))
-    if eco:
+    elif eco:
         st.altair_chart(alt.vconcat(availability_chart, solar_chart).resolve_scale(x='shared'))
     elif cost:
         st.altair_chart(alt.vconcat(availability_chart, pricing_chart).resolve_scale(x='shared'))
