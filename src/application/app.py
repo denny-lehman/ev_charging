@@ -55,7 +55,8 @@ def load_data():
 
 @st.cache_resource
 def load_model():
-    model = pickle.load(open('model.pkl', 'rb'))
+    model = pickle.load(open('models/model_04_10.pkl', 'rb'))
+    reg_model = pickle.load(open('models/reg_model.pkl', 'rb'))
     return model
 
 sites = ['Office001','Caltech','JPL']
