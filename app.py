@@ -195,25 +195,26 @@ def get_forecasts(site):
 #
 def try_forecast(site):
     today_forecast, demand_forecast, solar_df, wind_df = get_forecasts(site)
-    today_forecast, demand_forecast, solar_df, wind_df = st.session_state[f'today_forecast'], \
-        st.session_state[f'demand_forecast'], \
-        st.session_state[f'solar_df'], \
-        st.session_state[f'wind_df']
+    st.session_state[f'{site}_today_forecast'] = today_forecast
+    st.session_state[f'{site}_demand_forecast'] = demand_forecast
+    st.session_state[f'{site}_solar_df'] = solar_df
+    st.session_state[f'{site}_wind_df'] = wind_df
 
-    # if 'key' not in st.session_state:
-    #     st.session_state.key = 0
-    #     for site in sites:
-    #         try_forecast(site)
+
+if 'key' not in st.session_state:
+    st.session_state.key = 0
+    for site in sites:
+        try_forecast(site)
+else:
+    # print(st.session_state.key)
+    # if any(st.session_state[f'{site}_today_forecast'] is None for site in sites):
+    #    for site in sites:
+    #        try_forecast(site)
     # else:
-    #     # print(st.session_state.key)
-    #     # if any(st.session_state[f'{site}_today_forecast'] is None for site in sites):
-    #     #    for site in sites:
-    #     #        try_forecast(site)
-    #     # else:
-    #     today_forecast, demand_forecast, solar_df, wind_df = st.session_state[f'{site}_today_forecast'], \
-    #         st.session_state[f'{site}_demand_forecast'], \
-    #         st.session_state[f'{site}_solar_df'], \
-    #         st.session_state[f'{site}_wind_df']
+    today_forecast, demand_forecast, solar_df, wind_df = st.session_state[f'{site}_today_forecast'], \
+        st.session_state[f'{site}_demand_forecast'], \
+        st.session_state[f'{site}_solar_df'], \
+        st.session_state[f'{site}_wind_df']
 
 #if user_preference == 'Eco-Friendly':
 #    demand_forecast = sd.get_demand_forecast(start, end)
