@@ -1,0 +1,18 @@
+[tool.poetry]
+name = "charge-buddy"
+version = "0.1.0"
+description = "This is the package configuration for the Charge Buddy application"
+authors = ["Varun Venkatesh <vrvenkatesh@ischool.berkeley.edu> Denny Lehman <den@ischool.berkeley.edu>"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.10"
+xgboost = "2.0.3"
+pandas = "^2.2.1"
+numpy = "^1.26.4"
+streamlit = "^1.33.0"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
