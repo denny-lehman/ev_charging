@@ -49,22 +49,25 @@ sd = o.SystemDemand()
 #get today's datetime
 today = datetime.today().date()
 
+#get today's datetime
+today = datetime.today().date()
 
-@st.cache_data
-# update to load CAISO data
-def load_data():
-    df_of = pd.read_parquet('data/ACN-API/office001/').reset_index(drop=True)
-    df_of = datetime_processing(df_of)
-    df_of = userinput_processing(df_of)
-    df_of = holiday_processing(df_of)
-    return df_of
+
+# @st.cache_data
+# to load CAISO data
+# def load_data():
+    # df_of = pd.read_parquet('data/ACN-API/office001/').reset_index(drop=True)
+    # df_of = datetime_processing(df_of)
+    # df_of = userinput_processing(df_of)
+    # df_of = holiday_processing(df_of)
+    # return df_of
 
 @st.cache_resource
 def load_model():
-    model = pickle.load(open('models/model_04_10.pkl', 'rb'))
-    reg_model = pickle.load(open('models/reg_model.pkl', 'rb'))
-    return model, reg_model
-    
+    model = pickle.load(open('model.pkl', 'rb'))
+    reg_model = pickle.load(open('reg_model.pkl', 'rb'))
+    return model, reg_model, reg_model
+
 @st.cache_data
 def get_weather(lat, long, test=test_mode):
     if test:
@@ -189,7 +192,7 @@ def get_forecasts(site):
         wind_df = st.session_state['Caltech_wind_df']
     return today_forecast, demand_forecast, solar_df, wind_df
 
-
+#
 def try_forecast(site):
     today_forecast, demand_forecast, solar_df, wind_df = get_forecasts(site)
     st.session_state[f'{site}_today_forecast'] = today_forecast
@@ -227,6 +230,16 @@ else:
 #                 '\nIt is maintained by [Paduel]('
 #                 'https://twitter.com/paduel_py).\n\n'
 #                 'Check the code at https://github.com/paduel/streamlit_finance_chart')
+if user_preference == 'Eco-Friendly':
+   eco = True
+else:
+    eco = False
+
+#st.sidebar.info('EDIT ME: This app is a simple example of '
+#                 'using Streamlit to create a financial data web app.\n'
+#                 '\nIt is maintained by [Paduel]('
+#                 'https://twitter.com/paduel_py).\n\n'
+#                 'Check the code at https://github.com/paduel/streamlit_finance_chart')
 
 pricing = get_tou_pricing(site, start, end)
 # populate main column with availability chart
@@ -250,6 +263,9 @@ with col1:
     X = holiday_processing(X).drop(columns=['connectionTime'])
     X['siteID'] = site2id[site]
     prediction = pd.Series(reg_model.predict(X) * 100, index=X.index, name='% available')
+
+    prediction = pd.Series(reg_model.predict(X) * 100, index=X.index, name='% available')
+
 
     # regression messes up sometimes, bound the values between [0, 100]
     prediction[prediction > 100] = 100
@@ -282,22 +298,23 @@ with col1:
         height=250
     ).add_params(brush).transform_filter(brush)
 
-    solar_chart = alt.Chart(solar_df.reset_index(), title='Solar Energy Forecast').mark_bar(size=15).encode(
-        x=alt.X('INTERVALSTARTTIME_GMT', title='Time'),
-        y=alt.Y('MW', title='Solar Power (MW)'),
-        tooltip=[alt.Tooltip('INTERVALSTARTTIME_GMT', title='Time'),
-                 alt.Tooltip('MW', title='Solar Power Availabile (MW)')],
-        color=alt.condition(solar_brush, alt.value('green'), alt.value('lightgray'))
-    ).properties(
-        width=1000,
-        height=250
-    ).add_params(solar_brush)
-    if eco & cost:
-        st.altair_chart(alt.vconcat(availability_chart, pricing_chart, solar_chart).resolve_scale(x='shared'))
-    elif eco:
+
+    # if eco & cost:
+        # st.altair_chart(alt.vconcat(availability_chart, pricing_chart, solar_chart).resolve_scale(x='shared'))
+    if eco:
+        solar_chart = alt.Chart(solar_df.reset_index(), title='Solar Energy Forecast').mark_bar(size=15).encode(
+            x=alt.X('INTERVALSTARTTIME_GMT', title='Time'),
+            y=alt.Y('MW', title='Solar Power (MW)'),
+            tooltip=[alt.Tooltip('INTERVALSTARTTIME_GMT', title='Time'),
+                     alt.Tooltip('MW', title='Solar Power Availabile (MW)')],
+            color=alt.condition(solar_brush, alt.value('green'), alt.value('lightgray'))
+            ).properties(
+            width=1000,
+            height=250
+            ).add_params(solar_brush)
         st.altair_chart(alt.vconcat(availability_chart, solar_chart).resolve_scale(x='shared'))
-    elif cost:
-        st.altair_chart(alt.vconcat(availability_chart, pricing_chart).resolve_scale(x='shared'))
+    # elif cost:
+        # st.altair_chart(alt.vconcat(availability_chart, pricing_chart).resolve_scale(x='shared'))
     else:
         st.altair_chart(availability_chart)
 

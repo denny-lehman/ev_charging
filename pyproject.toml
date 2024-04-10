@@ -1,17 +1,19 @@
 [tool.poetry]
 name = "charge-buddy"
 version = "0.1.0"
-description = "This is the package configuration file for the application Charge Buddy"
-authors = ["Your Name <you@example.com>"]
+description = "This is the package configuration for the Charge Buddy application"
+authors = ["Varun Venkatesh <vrvenkatesh@ischool.berkeley.edu> Denny Lehman <den@ischool.berkeley.edu> Elizabeth Willard <elizabethwillard@berkeley.edu"]
+
 readme = "README.md"
 package-mode = false
 
 [tool.poetry.dependencies]
 python = "^3.10"
 xgboost = "2.0.3"
+pandas = "^2.2.1"
+numpy = "^1.26.4"
 streamlit = "^1.33.0"
 scikit-learn = "^1.4.2"
-
 
 [build-system]
 requires = ["poetry-core"]
