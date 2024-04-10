@@ -53,7 +53,7 @@ def load_data():
     df_of = holiday_processing(df_of)
     return df_of
 
-
+@st.cache_resource
 def load_model():
     model = pickle.load(open('model.pkl', 'rb'))
     return model
@@ -61,7 +61,7 @@ def load_model():
 sites = ['Office001','Caltech','JPL']
 site_ids = [2,1,19]
 site2id = { k:v for (k,v) in zip(sites, site_ids)}
-
+#Why are we duplicating this when it is on line
 site2latlon = {'Caltech':(34.134785646454844, -118.11691382579643),
                'Office001':(37.33680466796926, -121.90743423142634),
                'JPL':(34.20142342818471, -118.17126565774107)}
