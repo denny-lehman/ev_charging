@@ -103,7 +103,7 @@ st.markdown("<h1 style='text-align: center; color: orange;'>Charge Buddy</h1>", 
 st.divider()
 
 # create columns for layout of the app (1st column is 70% of the page, 2nd column is 30%)
-col1, col2 = st.columns([0.75, 0.25])
+col1, col2 = st.columns([0.7, 0.3])
 
 # create a tagline for the app
 st.subheader('Helping EV owners find the best time to charge')
@@ -258,7 +258,7 @@ with col1:
                  alt.Tooltip('% available', title='Availability (%)')],
         color=alt.condition(brush, alt.value('steelblue'), alt.value('lightgray'))
     ).properties(
-        width=1000,
+        width=800,
         height=250
     ).add_params(brush)
 
@@ -269,27 +269,27 @@ with col1:
                  alt.Tooltip('price', title='Price ($/kWh)')],
         color=alt.condition(brush, alt.value('steelblue'), alt.value('lightgray'))
     ).properties(
-        width=1000,
+        width=800,
         height=250
     ).add_params(brush).transform_filter(brush)
 
+    solar_chart = alt.Chart(solar_df.reset_index(), title='Solar Energy Forecast').mark_bar(size=15).encode(
+        x=alt.X('INTERVALSTARTTIME_GMT', title='Time'),
+        y=alt.Y('MW', title='Solar Power (MW)'),
+        tooltip=[alt.Tooltip('INTERVALSTARTTIME_GMT', title='Time'),
+                 alt.Tooltip('MW', title='Solar Power Availabile (MW)')],
+        color=alt.condition(solar_brush, alt.value('green'), alt.value('lightgray'))
+    ).properties(
+        width=800,
+        height=250
+    ).add_params(solar_brush)
 
-    # if eco & cost:
-        # st.altair_chart(alt.vconcat(availability_chart, pricing_chart, solar_chart).resolve_scale(x='shared'))
+    if eco & cost:
+        st.altair_chart(alt.vconcat(availability_chart, pricing_chart, solar_chart).resolve_scale(x='shared'))
     if eco:
-        solar_chart = alt.Chart(solar_df.reset_index(), title='Solar Energy Forecast').mark_bar(size=15).encode(
-            x=alt.X('INTERVALSTARTTIME_GMT', title='Time'),
-            y=alt.Y('MW', title='Solar Power (MW)'),
-            tooltip=[alt.Tooltip('INTERVALSTARTTIME_GMT', title='Time'),
-                     alt.Tooltip('MW', title='Solar Power Availabile (MW)')],
-            color=alt.condition(solar_brush, alt.value('green'), alt.value('lightgray'))
-            ).properties(
-            width=1000,
-            height=250
-            ).add_params(solar_brush)
         st.altair_chart(alt.vconcat(availability_chart, solar_chart).resolve_scale(x='shared'))
-    # elif cost:
-        # st.altair_chart(alt.vconcat(availability_chart, pricing_chart).resolve_scale(x='shared'))
+    elif cost:
+        st.altair_chart(alt.vconcat(availability_chart, pricing_chart).resolve_scale(x='shared'))
     else:
         st.altair_chart(availability_chart)
 
