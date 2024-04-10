@@ -67,7 +67,7 @@ def load_model():
     model = pickle.load(open('model.pkl', 'rb'))
     reg_model = pickle.load(open('reg_model.pkl', 'rb'))
     return model, reg_model, reg_model
-    
+
 @st.cache_data
 def get_weather(lat, long, test=test_mode):
     if test:
@@ -263,7 +263,9 @@ with col1:
     X = holiday_processing(X).drop(columns=['connectionTime'])
     X['siteID'] = site2id[site]
     prediction = pd.Series(reg_model.predict(X) * 100, index=X.index, name='% available')
+
     prediction = pd.Series(reg_model.predict(X) * 100, index=X.index, name='% available')
+
 
     # regression messes up sometimes, bound the values between [0, 100]
     prediction[prediction > 100] = 100
