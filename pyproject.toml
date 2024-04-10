@@ -13,8 +13,6 @@ pandas = "^2.2.1"
 numpy = "^1.26.4"
 streamlit = "^1.33.0"
 scikit-learn = "^1.4.2"
-pandas = "^2.2.1"
-numpy = "^1.26.4"
 
 
 
