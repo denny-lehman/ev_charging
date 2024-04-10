@@ -80,7 +80,7 @@ def create_hourly_forecast_df(json_forecast):
     forecast_df = pd.DataFrame(forecast)
 
     # convert startTime to UTC datetime and set as index
-    forecast_df['time'] = pd.to_datetime(forecast_df['startTime'], utc=True)
+    forecast_df['time'] = pd.to_datetime(forecast_df['startTime'])#, utc=True)
     forecast_df = forecast_df.set_index('time')
 
     # convert temperature to degF and degC
