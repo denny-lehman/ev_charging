@@ -230,10 +230,7 @@ else:
 #                 '\nIt is maintained by [Paduel]('
 #                 'https://twitter.com/paduel_py).\n\n'
 #                 'Check the code at https://github.com/paduel/streamlit_finance_chart')
-if user_preference == 'Eco-Friendly':
-   eco = True
-else:
-    eco = False
+
 
 #st.sidebar.info('EDIT ME: This app is a simple example of '
 #                 'using Streamlit to create a financial data web app.\n'
