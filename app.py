@@ -263,7 +263,7 @@ with col1:
     X['connectionTime'] = X.index
     X = holiday_processing(X).drop(columns=['connectionTime'])
     X['siteID'] = site2id[site]
-    prediction = pd.Series(model.predict(X) * 100, index=X.index, name='% available')
+    prediction = pd.Series(reg_model.predict(X) * 100, index=X.index, name='% available')
 
     # regression messes up sometimes, bound the values between [0, 100]
     prediction[prediction > 100] = 100
