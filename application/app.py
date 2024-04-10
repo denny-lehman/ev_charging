@@ -6,9 +6,12 @@ import datetime
 import pickle
 import logging
 import altair as alt
+import os
 from datetime import datetime
+
+print(os.getcwd())
 from src.data_preprocessing import datetime_processing, userinput_processing, holiday_processing, create_x, \
-    create_wide_y
+            create_wide_y
 import src.weather as w
 import src.oasis as o
 
