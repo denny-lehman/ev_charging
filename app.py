@@ -104,18 +104,18 @@ lat, long = 0, 0
 lat, long = site2latlon.get(site)
 logger.info(f'lat lon selected: {lat}, {long}')
 
-# grid_id, grid_x, grid_y = w.get_grid_points(lat, long)
-# forecast = w.get_weather_forecast(grid_id, grid_x, grid_y)
-#
-# today = datetime.today().date()
-# if forecast:
-#     forecast_df = w.create_forecast_df(forecast)
-#     today_forecast = forecast_df.loc[forecast_df['startTime'].dt.date == today]
-# else:
-#     today_forecast = None
-#
-# logger.info(f'todays forecast: {forecast_df.head()}')
-# forecast_df.to_csv('data/test_forecast.csv')
+grid_id, grid_x, grid_y = w.get_grid_points(lat, long)
+forecast = w.get_weather_forecast(grid_id, grid_x, grid_y)
+
+today = datetime.today().date()
+if forecast:
+    forecast_df = w.create_forecast_df(forecast)
+    today_forecast = forecast_df.loc[forecast_df['startTime'].dt.date == today]
+else:
+    today_forecast = None
+
+logger.info(f'todays forecast: {forecast_df.head()}')
+forecast_df.to_csv('data/test_forecast.csv')
 
 @st.cache_data
 def get_weather(lat, long, test=test_mode):
