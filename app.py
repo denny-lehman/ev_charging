@@ -48,7 +48,7 @@ sd = o.SystemDemand()
 
 #get today's datetime
 today = datetime.today().date()
-
+tomorrow = today + pd.Timedelta('1d')
 
 # @st.cache_data
 # to load CAISO data
@@ -135,8 +135,8 @@ logger.info(f'todays forecast: {forecast_df.head()}')
 forecast_df.to_csv('data/test_forecast.csv')
 
 st.sidebar.subheader('Select date')
-start_date = st.sidebar.date_input("Start date", value=today)
-end_date = st.sidebar.date_input("End date", value=today + pd.Timedelta('1d'))
+start_date = st.sidebar.date_input("Start date", value=today, min_value=today, max_value=today + pd.Timedelta('6d'))
+end_date = st.sidebar.date_input("End date", value=start_date + pd.Timedelta('1d'), max_value=today + pd.Timedelta('7d'))
 s_ls = [int(x) for x in str(start_date).split('-')]
 e_ls = [int(x) for x in str(end_date).split('-')]
 start, end = datetime(s_ls[0], s_ls[1], s_ls[2]), datetime(e_ls[0], e_ls[1], e_ls[2])
@@ -213,21 +213,6 @@ else:
         st.session_state[f'{site}_solar_df'], \
         st.session_state[f'{site}_wind_df']
 
-#if user_preference == 'Eco-Friendly':
-#    demand_forecast = sd.get_demand_forecast(start, end)
-#    wind_solar_forecast = sd.get_wind_and_solar_forecast(start, end)
-#    wind_solar_forecast['INTERVALSTARTTIME_GMT'] = pd.to_datetime(wind_solar_forecast['INTERVALSTARTTIME_GMT'],
-#                                                                  utc=True)
-#    solar_df = wind_solar_forecast[wind_solar_forecast['RENEWABLE_TYPE'] == 'Solar']
-#    wind_df = wind_solar_forecast[wind_solar_forecast['RENEWABLE_TYPE'] == 'Wind']
-
-
-#st.sidebar.info('EDIT ME: This app is a simple example of '
-#                 'using Streamlit to create a financial data web app.\n'
-#                 '\nIt is maintained by [Paduel]('
-#                 'https://twitter.com/paduel_py).\n\n'
-#                 'Check the code at https://github.com/paduel/streamlit_finance_chart')
-
 
 #st.sidebar.info('EDIT ME: This app is a simple example of '
 #                 'using Streamlit to create a financial data web app.\n'
@@ -241,7 +226,6 @@ col1.column_config = {'justify': 'center'}
 with col1:
     st.markdown(f"<h2 style='text-align: center; color: white;'>Availability at {site} </h2>",
                 unsafe_allow_html=True)
-    #st.subheader(f'Availability at {site}')
 
     model, model_final, reg_model = load_model()
 
