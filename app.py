@@ -56,7 +56,8 @@ def load_data():
 @st.cache_resource
 def load_model():
     model = pickle.load(open('model.pkl', 'rb'))
-    return model
+    reg_model = pickle.load(open('reg_model.pkl', 'rb'))
+    return model, reg_model
 
 sites = ['Office001','Caltech','JPL']
 site_ids = [2,1,19]
@@ -103,18 +104,20 @@ lat, long = 0, 0
 lat, long = site2latlon.get(site)
 logger.info(f'lat lon selected: {lat}, {long}')
 
-grid_id, grid_x, grid_y = w.get_grid_points(lat, long)
-forecast = w.get_weather_forecast(grid_id, grid_x, grid_y)
+# grid_id, grid_x, grid_y = w.get_grid_points(lat, long)
+# forecast = w.get_weather_forecast(grid_id, grid_x, grid_y)
+#
+# today = datetime.today().date()
+# if forecast:
+#     forecast_df = w.create_forecast_df(forecast)
+#     today_forecast = forecast_df.loc[forecast_df['startTime'].dt.date == today]
+# else:
+#     today_forecast = None
+#
+# logger.info(f'todays forecast: {forecast_df.head()}')
+# forecast_df.to_csv('data/test_forecast.csv')
 
-today = datetime.today().date()
-if forecast:
-    forecast_df = w.create_forecast_df(forecast)
-    today_forecast = forecast_df.loc[forecast_df['startTime'].dt.date == today]
-else:
-    today_forecast = None
-
-logger.info(f'todays forecast: {forecast_df.head()}')
-forecast_df.to_csv('data/test_forecast.csv')
+@st.cache_data
 def get_weather(lat, long, test=test_mode):
     if test:
         return pd.read_csv('data/test_forecast')
@@ -127,9 +130,10 @@ def get_weather(lat, long, test=test_mode):
     if forecast:
         forecast_df = w.create_forecast_df(forecast)
         today_forecast = forecast_df.loc[forecast_df['startTime'].dt.date == today]
+        return forecast_df
     else:
         today_forecast = None
-    return forecast_df
+
 
 st.sidebar.subheader('Select date')
 start_date = st.sidebar.date_input("Start date", value=today)
@@ -168,55 +172,59 @@ def get_tou_pricing(site, start, end):
 
 
 # function to get all forecasts for each site at session start. to be used after introducting statefulness into the app
-def get_forecasts(site):
-    lat, long = site_xy[site]
-    grid_id, grid_x, grid_y = w.get_grid_points(lat, long)
-    forecast = w.get_weather_forecast(grid_id, grid_x, grid_y)
-
-    # added this if-else because the forecast request kept failing
-    if forecast:
-        forecast_df = w.create_forecast_df(forecast)
-        today_forecast = forecast_df.loc[forecast_df['startTime'].dt.date == today]
-    else:
-        today_forecast = None
-
-    # adding logic to prevent redundant API calls since Caltech and JPL are in the same location
-    if site != 'JPL':
-        demand_forecast = sd.get_demand_forecast(start, end)
-        wind_solar_forecast = sd.get_wind_and_solar_forecast(start, end)
-        wind_solar_forecast['INTERVALSTARTTIME_GMT'] = pd.to_datetime(wind_solar_forecast['INTERVALSTARTTIME_GMT'],
-                                                                      utc=True)
-        solar_df = wind_solar_forecast[wind_solar_forecast['RENEWABLE_TYPE'] == 'Solar']
-        wind_df = wind_solar_forecast[wind_solar_forecast['RENEWABLE_TYPE'] == 'Wind']
-    else:
-        demand_forecast = st.session_state['Caltech_demand_forecast']
-        solar_df = st.session_state['Caltech_solar_df']
-        wind_df = st.session_state['Caltech_wind_df']
-    return today_forecast, demand_forecast, solar_df, wind_df
-
-
+# def get_forecasts(site):
+#     lat, long = site_xy[site]
+#     grid_id, grid_x, grid_y = w.get_grid_points(lat, long)
+#     forecast = w.get_weather_forecast(grid_id, grid_x, grid_y)
+#
+#     # added this if-else because the forecast request kept failing
+#     if forecast:
+#         forecast_df = w.create_forecast_df(forecast)
+#         today_forecast = forecast_df.loc[forecast_df['startTime'].dt.date == today]
+#     else:
+#         today_forecast = None
+#
+#     # adding logic to prevent redundant API calls since Caltech and JPL are in the same location
+#     if site != 'JPL':
+#         demand_forecast = sd.get_demand_forecast(start, end)
+#         wind_solar_forecast = sd.get_wind_and_solar_forecast(start, end)
+#         wind_solar_forecast['INTERVALSTARTTIME_GMT'] = pd.to_datetime(wind_solar_forecast['INTERVALSTARTTIME_GMT'],
+#                                                                       utc=True)
+#         solar_df = wind_solar_forecast[wind_solar_forecast['RENEWABLE_TYPE'] == 'Solar']
+#         wind_df = wind_solar_forecast[wind_solar_forecast['RENEWABLE_TYPE'] == 'Wind']
+#         st.session_state[f'{site}_today_forecast'] = today_forecast
+#         st.session_state[f'{site}_demand_forecast'] = demand_forecast
+#         st.session_state[f'{site}_solar_df'] = solar_df
+#         st.session_state[f'{site}_wind_df'] = wind_df
+#
+#     else:
+#         demand_forecast = st.session_state['Caltech_demand_forecast']
+#         solar_df = st.session_state['Caltech_solar_df']
+#         wind_df = st.session_state['Caltech_wind_df']
+#     return today_forecast, demand_forecast, solar_df, wind_df
+#
+#
 def try_forecast(site):
     today_forecast, demand_forecast, solar_df, wind_df = get_forecasts(site)
-    st.session_state[f'{site}_today_forecast'] = today_forecast
-    st.session_state[f'{site}_demand_forecast'] = demand_forecast
-    st.session_state[f'{site}_solar_df'] = solar_df
-    st.session_state[f'{site}_wind_df'] = wind_df
+    today_forecast, demand_forecast, solar_df, wind_df = st.session_state[f'today_forecast'], \
+        st.session_state[f'demand_forecast'], \
+        st.session_state[f'solar_df'], \
+        st.session_state[f'wind_df']
 
-
-if 'key' not in st.session_state:
-    st.session_state.key = 0
-    for site in sites:
-        try_forecast(site)
-else:
-    # print(st.session_state.key)
-    # if any(st.session_state[f'{site}_today_forecast'] is None for site in sites):
-    #    for site in sites:
-    #        try_forecast(site)
+    # if 'key' not in st.session_state:
+    #     st.session_state.key = 0
+    #     for site in sites:
+    #         try_forecast(site)
     # else:
-    today_forecast, demand_forecast, solar_df, wind_df = st.session_state[f'{site}_today_forecast'], \
-        st.session_state[f'{site}_demand_forecast'], \
-        st.session_state[f'{site}_solar_df'], \
-        st.session_state[f'{site}_wind_df']
+    #     # print(st.session_state.key)
+    #     # if any(st.session_state[f'{site}_today_forecast'] is None for site in sites):
+    #     #    for site in sites:
+    #     #        try_forecast(site)
+    #     # else:
+    #     today_forecast, demand_forecast, solar_df, wind_df = st.session_state[f'{site}_today_forecast'], \
+    #         st.session_state[f'{site}_demand_forecast'], \
+    #         st.session_state[f'{site}_solar_df'], \
+    #         st.session_state[f'{site}_wind_df']
 
 #if user_preference == 'Eco-Friendly':
 #    demand_forecast = sd.get_demand_forecast(start, end)
@@ -241,7 +249,8 @@ with col1:
                 unsafe_allow_html=True)
     #st.subheader(f'Availability at {site}')
 
-    model = pickle.load(open('reg_model.pkl', 'rb'))
+    #model = pickle.load(open('reg_model.pkl', 'rb'))
+    model, reg_model = load_model()
 
     st.write('Availability from ', start_date, ' to ', end_date)
 
