@@ -2,7 +2,8 @@ import requests
 import pandas as pd
 import numpy as np
 import time
-
+import streamlit as st
+@st.cache_data
 def get_grid_points(latitude, longitude):
     url = f'https://api.weather.gov/points/{latitude},{longitude}'
     print(url)
@@ -17,7 +18,7 @@ def get_grid_points(latitude, longitude):
     grid_y = r.json()['properties']['gridY']
     return grid_id, grid_x, grid_y
 
-
+@st.cache_data
 def get_weather_forecast(office, grid_x, grid_y):
     url = f'https://api.weather.gov/gridpoints/{office}/{grid_x},{grid_y}/forecast'
     print(url)
@@ -33,7 +34,7 @@ def get_weather_forecast(office, grid_x, grid_y):
             return None
     return r.json()
 
-
+@st.cache_data
 def get_hourly_weather_forecast(office, grid_x, grid_y):
     url = f'https://api.weather.gov/gridpoints/{office}/{grid_x},{grid_y}/forecast/hourly'
     print(url)
@@ -49,7 +50,7 @@ def get_hourly_weather_forecast(office, grid_x, grid_y):
             return None
     return r.json()
 
-
+@st.cache_data
 def get_raw_weather_forecast(office, grid_x, grid_y):
     url = f'https://api.weather.gov/gridpoints/{office}/{grid_x},{grid_y}'
     print(url)
@@ -65,7 +66,7 @@ def get_raw_weather_forecast(office, grid_x, grid_y):
             return None
     return r.json()
 
-
+@st.cache_data
 def create_forecast_df(json_forecast):
     forecast = json_forecast['properties']['periods']
     forecast_df = pd.DataFrame(forecast)
@@ -73,7 +74,7 @@ def create_forecast_df(json_forecast):
     forecast_df['endTime'] = pd.to_datetime(forecast_df['endTime'], utc=True)
     return forecast_df
 
-
+@st.cache_data
 def create_hourly_forecast_df(json_forecast):
     # grab each hourly entry in the forecast
     forecast = json_forecast['properties']['periods']
@@ -103,7 +104,7 @@ def create_hourly_forecast_df(json_forecast):
     return forecast_df.drop(
         columns=['startTime', 'endTime', 'windSpeed', 'number', 'name', 'detailedForecast', 'dewpoint',
                  'probabilityOfPrecipitation', 'relativeHumidity', 'temperatureTrend', 'temperatureUnit'])
-
+@st.cache_data
 def get_processed_hourly_7day_weather(latitude:float, longitude:float, test_mode:bool=False) -> pd.DataFrame:
     """given the latitude and longitude of a site, return a processed dataframe of the hourly weather. This is a orchestrator function
     args:
