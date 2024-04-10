@@ -49,9 +49,6 @@ sd = o.SystemDemand()
 #get today's datetime
 today = datetime.today().date()
 
-#get today's datetime
-today = datetime.today().date()
-
 
 # @st.cache_data
 # to load CAISO data
@@ -64,15 +61,15 @@ today = datetime.today().date()
 
 @st.cache_resource
 def load_model():
-    model = pickle.load(open('model.pkl', 'rb'))
-    reg_model = pickle.load(open('reg_model.pkl', 'rb'))
-    return model, reg_model, reg_model
+    model = pickle.load(open('models/model.pkl', 'rb'))
+    model_final = pickle.load(open('models/model_04_10.pkl', 'rb'))
+    reg_model = pickle.load(open('models/reg_model.pkl', 'rb'))
+    return model, model_final, reg_model
 
 @st.cache_data
 def get_weather(lat, long, test=test_mode):
     if test:
         return pd.read_csv('data/test_forecast')
-
 
     grid_id, grid_x, grid_y = w.get_grid_points(lat, long)
     forecast = w.get_weather_forecast(grid_id, grid_x, grid_y)
@@ -106,7 +103,7 @@ st.markdown("<h1 style='text-align: center; color: orange;'>Charge Buddy</h1>", 
 st.divider()
 
 # create columns for layout of the app (1st column is 70% of the page, 2nd column is 30%)
-col1, col2 = st.columns([0.8, 0.2])
+col1, col2 = st.columns([0.75, 0.25])
 
 # create a tagline for the app
 st.subheader('Helping EV owners find the best time to charge')
@@ -246,7 +243,7 @@ with col1:
                 unsafe_allow_html=True)
     #st.subheader(f'Availability at {site}')
 
-    model, reg_model = load_model()
+    model, model_final, reg_model = load_model()
 
     st.write('Availability from ', start_date, ' to ', end_date)
 
@@ -260,9 +257,6 @@ with col1:
     X = holiday_processing(X).drop(columns=['connectionTime'])
     X['siteID'] = site2id[site]
     prediction = pd.Series(reg_model.predict(X) * 100, index=X.index, name='% available')
-
-    prediction = pd.Series(reg_model.predict(X) * 100, index=X.index, name='% available')
-
 
     # regression messes up sometimes, bound the values between [0, 100]
     prediction[prediction > 100] = 100
