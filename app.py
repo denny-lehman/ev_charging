@@ -99,10 +99,14 @@ site = st.sidebar.selectbox('Click below to select a charger location',
                             )
 
 # create a dropdown menu for the user to select a preference
-user_preferences = ['No Preference', 'Eco-Friendly', 'Low Cost']
-user_preference = st.sidebar.selectbox('Select your preference',
-                                       user_preferences, index=0,
-                                       )
+#user_preferences = ['No Preference', 'Eco-Friendly', 'Low Cost']
+#user_preference = st.sidebar.selectbox('Select your preference',
+#                                       user_preferences, index=0,
+#                                       )
+st.subheader('Select your preference')
+eco = st.checkbox('Eco-Friendly')
+cost = st.checkbox('Low Cost')
+
 lat, long = 0, 0
 lat, long = site2latlon.get(site)
 logger.info(f'lat lon selected: {lat}, {long}')
