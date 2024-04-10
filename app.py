@@ -46,6 +46,12 @@ site_xy = {'Office001': (office_lat, office_lon), 'Caltech': (caltech_lat, calte
 # create SystemDemand object
 sd = o.SystemDemand()
 
+#get today's datetime
+today = datetime.today().date()
+
+#get today's datetime
+today = datetime.today().date()
+
 
 # @st.cache_data
 # to load CAISO data
@@ -60,7 +66,23 @@ sd = o.SystemDemand()
 def load_model():
     model = pickle.load(open('model.pkl', 'rb'))
     reg_model = pickle.load(open('reg_model.pkl', 'rb'))
-    return model, reg_model
+    return model, reg_model, reg_model
+    
+@st.cache_data
+def get_weather(lat, long, test=test_mode):
+    if test:
+        return pd.read_csv('data/test_forecast')
+
+
+    grid_id, grid_x, grid_y = w.get_grid_points(lat, long)
+    forecast = w.get_weather_forecast(grid_id, grid_x, grid_y)
+
+    if forecast:
+        forecast_df = w.create_forecast_df(forecast)
+        today_forecast = forecast_df.loc[forecast_df['startTime'].dt.date == today]
+    else:
+        today_forecast = None
+    return forecast_df
 
 sites = ['Office001','Caltech','JPL']
 site_ids = [2,1,19]
@@ -103,44 +125,17 @@ site = st.sidebar.selectbox('Click below to select a charger location',
 #user_preference = st.sidebar.selectbox('Select your preference',
 #                                       user_preferences, index=0,
 #                                       )
-st.subheader('Select your preference')
-eco = st.checkbox('Eco-Friendly')
-cost = st.checkbox('Low Cost')
+st.sidebar.subheader('Select your preference')
+eco = st.sidebar.checkbox('Eco-Friendly')
+cost = st.sidebar.checkbox('Low Cost')
 
 lat, long = 0, 0
 lat, long = site2latlon.get(site)
 logger.info(f'lat lon selected: {lat}, {long}')
 
-# grid_id, grid_x, grid_y = w.get_grid_points(lat, long)
-# forecast = w.get_weather_forecast(grid_id, grid_x, grid_y)
-
-today = datetime.today().date()
-# if forecast:
-    # forecast_df = w.create_forecast_df(forecast)
-    # today_forecast = forecast_df.loc[forecast_df['startTime'].dt.date == today]
-# else:
-    # today_forecast = None
-
-# logger.info(f'todays forecast: {forecast_df.head()}')
-# forecast_df.to_csv('data/test_forecast.csv')
-
-@st.cache_data
-def get_weather(lat, long, test=test_mode):
-    if test:
-        return pd.read_csv('data/test_forecast')
-
-
-    grid_id, grid_x, grid_y = w.get_grid_points(lat, long)
-    forecast = w.get_weather_forecast(grid_id, grid_x, grid_y)
-
-    today = datetime.today().date()
-    if forecast:
-        forecast_df = w.create_forecast_df(forecast)
-        today_forecast = forecast_df.loc[forecast_df['startTime'].dt.date == today]
-        return forecast_df
-    else:
-        today_forecast = None
-
+forecast_df = get_weather(lat, long, test=False)
+logger.info(f'todays forecast: {forecast_df.head()}')
+forecast_df.to_csv('data/test_forecast.csv')
 
 st.sidebar.subheader('Select date')
 start_date = st.sidebar.date_input("Start date", value=today)
@@ -181,16 +176,8 @@ def get_tou_pricing(site, start, end):
 # function to get all forecasts for each site at session start. to be used after introducting statefulness into the app
 def get_forecasts(site):
     lat, long = site_xy[site]
-    grid_id, grid_x, grid_y = w.get_grid_points(lat, long)
-    forecast = w.get_weather_forecast(grid_id, grid_x, grid_y)
 
-    # added this if-else because the forecast request kept failing
-    if forecast:
-        forecast_df = w.create_forecast_df(forecast)
-        today_forecast = forecast_df.loc[forecast_df['startTime'].dt.date == today]
-    else:
-        today_forecast = None
-
+    today_forecast = get_weather(lat, long, test=False)
     # adding logic to prevent redundant API calls since Caltech and JPL are in the same location
     if site != 'JPL':
         demand_forecast = sd.get_demand_forecast(start, end)
@@ -262,7 +249,6 @@ with col1:
                 unsafe_allow_html=True)
     #st.subheader(f'Availability at {site}')
 
-    #model = pickle.load(open('reg_model.pkl', 'rb'))
     model, reg_model = load_model()
 
     st.write('Availability from ', start_date, ' to ', end_date)
@@ -276,6 +262,7 @@ with col1:
     X['connectionTime'] = X.index
     X = holiday_processing(X).drop(columns=['connectionTime'])
     X['siteID'] = site2id[site]
+    prediction = pd.Series(reg_model.predict(X) * 100, index=X.index, name='% available')
     prediction = pd.Series(reg_model.predict(X) * 100, index=X.index, name='% available')
 
     # regression messes up sometimes, bound the values between [0, 100]
