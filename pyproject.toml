@@ -5,6 +5,7 @@ description = "This is the package configuration for the Charge Buddy applicatio
 authors = ["Varun Venkatesh <vrvenkatesh@ischool.berkeley.edu> Denny Lehman <den@ischool.berkeley.edu> Elizabeth Willard <elizabethwillard@berkeley.edu"]
 readme = "README.md"
 package-mode = false
+package-mode = false
 
 [tool.poetry.dependencies]
 python = "^3.10"
