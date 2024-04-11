@@ -79,7 +79,7 @@ jobs:
 
     - name: SSH Key Creation 
       env:
-        ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+        SSH_PRIVATE_KEY: ${{ secrets.CHARGEBUDDY_ACTIONRUNNER }}
 
       run: |
         echo "$SSH_PRIVATE_KEY" > ssh_private_key && chmod 600 ssh_private_key
