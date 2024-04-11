@@ -10,13 +10,12 @@ import os
 from datetime import datetime
 import pytz
 from typing import Tuple
-
 print(os.getcwd())
 from src.data_preprocessing import datetime_processing, userinput_processing, holiday_processing, create_x, \
-            create_wide_y
+            create_wide_y, make_time_features
 import src.weather as w
 import src.oasis as o
-
+from src.weather import get_processed_hourly_7day_weather
 import logging
 logger = logging.getLogger(__name__)
 logger.addHandler(logging.StreamHandler())
@@ -109,37 +108,32 @@ def get_tou_pricing(site, start, end, tz='UTC-07:00'):
             # off-peak
             else:
                 pricing.loc[i, 'price'] = 0.14
-    pricing.index = pd.to_datetime(pricing.index).tz_localize(tz)
+
     return pricing
 
 # function to get all forecasts for each site at session start. to be used after introducting statefulness into the app
+@st.cache_data
 def get_forecasts(site:str) -> Tuple[pd.DataFrame]:
     lat, long = site2latlon[site]
 
     today_forecast = get_weather(lat, long, test=False)
-    # adding logic to prevent redundant API calls since Caltech and JPL are in the same location
-    if site != 'JPL':
-        demand_forecast = sd.get_demand_forecast(range_start, range_end)
-        wind_solar_forecast = sd.get_wind_and_solar_forecast(range_start, range_end)
-        wind_solar_forecast['INTERVALSTARTTIME_GMT'] = pd.to_datetime(wind_solar_forecast['INTERVALSTARTTIME_GMT'],
+
+    demand_forecast = sd.get_demand_forecast(range_start, range_end)
+    wind_solar_forecast = sd.get_wind_and_solar_forecast(range_start, range_end)
+    wind_solar_forecast['INTERVALSTARTTIME_GMT'] = pd.to_datetime(wind_solar_forecast['INTERVALSTARTTIME_GMT'],
                                                                       utc=True)
-        solar_df = wind_solar_forecast[wind_solar_forecast['RENEWABLE_TYPE'] == 'Solar']
-        wind_df = wind_solar_forecast[wind_solar_forecast['RENEWABLE_TYPE'] == 'Wind']
-    else:
-        demand_forecast = st.session_state['Caltech_demand_forecast']
-        solar_df = st.session_state['Caltech_solar_df']
-        wind_df = st.session_state['Caltech_wind_df']
-        wind_solar_forecast = st.session_state['Caltech_wind_solar_forecast']
+    solar_df = wind_solar_forecast[wind_solar_forecast['RENEWABLE_TYPE'] == 'Solar']
+    wind_df = wind_solar_forecast[wind_solar_forecast['RENEWABLE_TYPE'] == 'Wind']
     return today_forecast, demand_forecast, solar_df, wind_df, wind_solar_forecast
 
 #
-def try_forecast(site:str):
-    today_forecast, demand_forecast, solar_df, wind_df, wind_solar_forecast = get_forecasts(site)
-    st.session_state[f'{site}_today_forecast'] = today_forecast
-    st.session_state[f'{site}_demand_forecast'] = demand_forecast
-    st.session_state[f'{site}_solar_df'] = solar_df
-    st.session_state[f'{site}_wind_df'] = wind_df
-    st.session_state[f'{site}_wind_solar_forecast'] = wind_solar_forecast
+# def try_forecast(site:str):
+    # today_forecast, demand_forecast, solar_df, wind_df, wind_solar_forecast = get_forecasts(site)
+    # st.session_state[f'{site}_today_forecast'] = today_forecast
+    # st.session_state[f'{site}_demand_forecast'] = demand_forecast
+    # st.session_state[f'{site}_solar_df'] = solar_df
+    # st.session_state[f'{site}_wind_df'] = wind_df
+    # st.session_state[f'{site}_wind_solar_forecast'] = wind_solar_forecast
 
 
 sites = ['Office001','Caltech','JPL']
@@ -179,6 +173,8 @@ site = st.sidebar.selectbox('Click below to select a charger location',
                             sites, index=1,
                             key='site' # adds the site to the session state
                             )
+logger.info(f'site selected: {st.session_state["site"]}')
+
 
 st.sidebar.subheader('Select your preference')
 eco = st.sidebar.checkbox('Eco-Friendly', key='eco')
@@ -215,21 +211,10 @@ range_end = datetime(range_end_ls[0], range_end_ls[1], range_end_ls[2])
 
 
 # TODO: is this a switch?
-if 'key' not in st.session_state:
-    st.session_state.key = 0
-    for site in sites:
-        try_forecast(site)
-else:
-    # print(st.session_state.key)
-    # if any(st.session_state[f'{site}_today_forecast'] is None for site in sites):
-    #    for site in sites:
-    #        try_forecast(site)
-    # else:
-    today_forecast, demand_forecast, solar_df, wind_df, wind_solar_forecast = st.session_state[f'{site}_today_forecast'], \
-        st.session_state[f'{site}_demand_forecast'], \
-        st.session_state[f'{site}_solar_df'], \
-        st.session_state[f'{site}_wind_df'], \
-        st.session_state[f'{site}_wind_solar_forecast']
+
+st.session_state.key = 0
+today_forecast, demand_forecast, solar_df, wind_df, wind_solar_forecast = get_forecasts(st.session_state.site)
+
 
 
 #st.sidebar.info('EDIT ME: This app is a simple example of '
@@ -251,7 +236,7 @@ with col1:
     # get time, demand, and weather features
     # combine the 3 feature sets
     # perform inference
-    from src.data_preprocessing import make_time_features
+    
     logger.info(f'start date type {type(start_localized)} and value is {start_localized}')
     time_df = make_time_features(start_date, end_date)
     time_df['site'] = st.session_state['site']
@@ -259,14 +244,12 @@ with col1:
     assert {'site', 'index'}.issubset(time_df.reset_index().columns)
 
 
-
-    from src.weather import get_processed_hourly_7day_weather
     future_weather = get_processed_hourly_7day_weather(*site2latlon[st.session_state['site']])
     future_weather['site'] = st.session_state['site']
 
     assert {'site', 'time'}.issubset(future_weather.reset_index().columns)
 
-    demand_forecast = st.session_state[f'{site}_demand_forecast']
+    #demand_forecast = st.session_state[f'{site}_demand_forecast']
     logger.info(f'demand forecast loaded with shape {demand_forecast.shape} and columns: {demand_forecast.columns}')
     demand_forecast['datetime'] = pd.to_datetime(demand_forecast['OPR_DT']) + pd.to_timedelta(demand_forecast['OPR_HR'], unit='h')
     demand = demand_forecast.loc[
@@ -284,7 +267,7 @@ with col1:
     # combine
     features = ['dow', 'hour', 'month', 'is_holiday', 'actual_demand_MW',
                 'temperature_degC', 'dewpoint_degC', 'relative_humidity_%',
-                'wind_speed_mph', 'site']
+                           'wind_speed_mph', 'site']
     X = pd.DataFrame({}, columns=features)
     try:
         X = pd.merge(time_df.reset_index(), demand.reset_index(), how='left', left_on=['index', 'site'],
@@ -319,14 +302,12 @@ with col1:
     brush = alt.selection(type='interval', encodings=['x'])
     solar_brush = alt.selection(type='interval', encodings=['x'])
     scale = alt.Scale(domain=[pd.to_datetime(start_localized), pd.to_datetime(end_localized)])
-    try:
-        wind_solar_forecast = wind_solar_forecast.sort_values('INTERVALSTARTTIME_GMT').loc[(wind_solar_forecast['INTERVALSTARTTIME_GMT'] >= start_localized) & (wind_solar_forecast['INTERVALSTARTTIME_GMT'] <= end_localized)]
-    except:
-        wind_solar_forecast = st.session_state[f'{site}_wind_solar_forecast']
+    
+    wind_solar_forecast = wind_solar_forecast.sort_values('INTERVALSTARTTIME_GMT').loc[(wind_solar_forecast['INTERVALSTARTTIME_GMT'] >= start_localized) & (wind_solar_forecast['INTERVALSTARTTIME_GMT'] <= end_localized)]
     availability_chart = alt.Chart(X.reset_index()).mark_bar(size=15).encode(
-        x=alt.X('index:T', title='Time'),
+            x=alt.X('datetime:T', title='Time'),
         y=alt.Y('% available', title='Availability (%)'),
-        tooltip=[alt.Tooltip('index', title='Time'),
+        tooltip=[alt.Tooltip('datetime', title='Time'),
                  alt.Tooltip('% available', title='Availability (%)')],
         color=alt.condition(brush, alt.value('steelblue'), alt.value('lightgray'))
     ).properties(
@@ -334,7 +315,7 @@ with col1:
         height=250
     ).add_params(brush)
 
-    logger.info(f'pricing is {pricing.reset_index().info()}')
+#logger.info(f'pricing is {pricing.reset_index().info()}')
     pricing_chart = alt.Chart(pricing.reset_index(), title='Pricing').mark_line().encode(
         x=alt.X('index:T', title='Time'),
         y=alt.Y('price', title='Price ($/kWh)'),
@@ -347,7 +328,7 @@ with col1:
     ).add_params(brush).transform_filter(brush)
     if False:
         solar_chart = alt.Chart(solar_df.reset_index(), title='Solar Energy Forecast').mark_bar(size=15).encode(
-            x=alt.X('INTERVALSTARTTIME_GMT:T', title='Time'),
+            x=alt.X('index', title='Time'),
             y=alt.Y('MW', title='Solar Power (MW)'),
             tooltip=[alt.Tooltip('INTERVALSTARTTIME_GMT', title='Time'),
                      alt.Tooltip('MW', title='Solar Power Availabile (MW)')],
@@ -369,10 +350,12 @@ with col1:
     )#.add_params(solar_brush)
 
     if eco & cost:
+        #need to add pricing chart back
         st.altair_chart(alt.vconcat(availability_chart, pricing_chart, solar_chart).resolve_scale(x='shared'))
     elif eco:
         st.altair_chart(alt.vconcat(availability_chart, solar_chart).resolve_scale(x='shared'))
     elif cost:
+        #need to add pricing chart back
         st.altair_chart(alt.vconcat(availability_chart, pricing_chart).resolve_scale(x='shared'))
     else:
         st.altair_chart(availability_chart)
