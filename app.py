@@ -173,7 +173,6 @@ st.set_page_config(page_title='Charge Buddy', page_icon=':zap:', layout='wide', 
 # title in markdown to allow for styling and positioning
 st.markdown("<h1 style='text-align: center; color: orange;'>Charge Buddy</h1>", unsafe_allow_html=True)
 
-# create a tagline for the app
 st.markdown("<h3 style='text-align: center; color: white;'>Helping EV Owners find the best time to charge</h3>", unsafe_allow_html=True)
 
 # creates a horizontal line
@@ -328,10 +327,6 @@ with col1:
     prediction[prediction < 0] = 0
 
     X['% available'] = prediction
-
-    brush = alt.selection(type='interval', encodings=['x'])
-    solar_brush = alt.selection(type='interval', encodings=['x'])
-    scale = alt.Scale(domain=[pd.to_datetime(start_localized), pd.to_datetime(end_localized)])
     
     wind_solar_forecast = wind_solar_forecast.sort_values('INTERVALSTARTTIME_GMT').loc[(wind_solar_forecast['INTERVALSTARTTIME_GMT'] >= start_localized) & (wind_solar_forecast['INTERVALSTARTTIME_GMT'] <= end_localized)]
     availability_chart = alt.Chart(X.reset_index()).mark_bar(size=15).encode(
@@ -339,11 +334,11 @@ with col1:
         y=alt.Y('% available', title='Availability (%)'),
         tooltip=[alt.Tooltip('datetime', title='Time'),
                  alt.Tooltip('% available', title='Availability (%)')],
-        color=alt.condition(brush, alt.value('steelblue'), alt.value('lightgray'))
+        color=alt.value('steelblue')
     ).properties(
         width=800,
         height=250
-    ).add_params(brush)
+    )
 
 #logger.info(f'pricing is {pricing.reset_index().info()}')
     pricing_chart = alt.Chart(pricing.reset_index(), title='Pricing').mark_line().encode(
@@ -351,11 +346,11 @@ with col1:
         y=alt.Y('price', title='Price ($/kWh)'),
         tooltip=[alt.Tooltip('index', title='Time'),
                  alt.Tooltip('price', title='Price ($/kWh)')],
-        color=alt.condition(brush, alt.value('steelblue'), alt.value('lightgray'))
+        color=alt.value('steelblue')
     ).properties(
         width=800,
         height=250
-    ).add_params(brush).transform_filter(brush)
+    )
 
     solar = alt.Chart(solar_df, title='Solar Forecast').mark_bar(size=15, color='orange').encode(
         x=alt.X('INTERVALSTARTTIME_GMT:T', title='Time'),
@@ -363,11 +358,10 @@ with col1:
         tooltip=[alt.Tooltip('INTERVALSTARTTIME_GMT', title='Time'),
                  alt.Tooltip('MW', title='Solar (MW)')],
         color=alt.Color('RENEWABLE_TYPE:N', title='Renewable Type')
-
     ).properties(
         width=800,
         height=250
-    ).add_params(brush)
+    )
 
     wind = alt.Chart(wind_df, title='Wind Forecast').mark_bar(size=15, color='steelblue').encode(
         x=alt.X('INTERVALSTARTTIME_GMT:T', title='Time'),
@@ -378,7 +372,7 @@ with col1:
     ).properties(
         width=800,
         height=250
-    ).add_params(brush)
+    )
 
     solar_chart = solar + wind
     solar_chart = solar_chart.properties(title='Renewable Energy Forecast')
