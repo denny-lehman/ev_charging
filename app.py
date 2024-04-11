@@ -21,6 +21,8 @@ from src.weather import get_processed_hourly_7day_weather
 import logging
 
 from streamlit_geolocation import streamlit_geolocation
+
+# https://ezzeddinabdullah.com/post/logging-python/
 logger = logging.getLogger(__name__)
 logger.addHandler(logging.StreamHandler())
 logger.setLevel(logging.INFO)
