@@ -32,7 +32,7 @@ on:
 
 env:
   AWS_REGION: us-east-1              # set this to your preferred AWS region, e.g. us-west-1
-  ECR_REPOSITORY: 241112547949.dkr.ecr.us-east-1.amazonaws.com/charge-buddy
+  ECR_REGISTRY: 241112547949.dkr.ecr.us-east-1.amazonaws.com/charge-buddy
   CONTAINER_NAME: MY_CONTAINER_NAME           # set this to the name of the container in the
                                                # containerDefinitions section of your task definition
 
