@@ -130,6 +130,20 @@ def get_forecasts(site:str) -> Tuple[pd.DataFrame]:
     wind_df = wind_solar_forecast[wind_solar_forecast['RENEWABLE_TYPE'] == 'Wind']
     return today_forecast, demand_forecast, solar_df, wind_df, wind_solar_forecast
 
+def set_renewable_chart_legend_pos(chart, x, y):
+    chart.layer[0].encoding.color.legend = alt.Legend(
+        orient='none',
+        legendX=x, legendY=y,
+        direction='horizontal',
+        titleAnchor='start')
+
+    chart.layer[1].encoding.color.legend = alt.Legend(
+        orient='none',
+        legendX=x, legendY=y,
+        direction='horizontal',
+        titleAnchor='start')
+    return chart
+
 #
 # def try_forecast(site:str):
     # today_forecast, demand_forecast, solar_df, wind_df, wind_solar_forecast = get_forecasts(site)
@@ -159,14 +173,14 @@ st.set_page_config(page_title='Charge Buddy', page_icon=':zap:', layout='wide', 
 # title in markdown to allow for styling and positioning
 st.markdown("<h1 style='text-align: center; color: orange;'>Charge Buddy</h1>", unsafe_allow_html=True)
 
+# create a tagline for the app
+st.markdown("<h3 style='text-align: center; color: white;'>Helping EV Owners find the best time to charge</h3>", unsafe_allow_html=True)
+
 # creates a horizontal line
 st.divider()
 
 # create columns for layout of the app (1st column is 70% of the page, 2nd column is 30%)
 col1, col2 = st.columns([0.7, 0.3])
-
-# create a tagline for the app
-st.subheader('Helping EV owners find the best time to charge')
 
 # create a sidebar for user input
 st.sidebar.title("When and where?")
@@ -231,6 +245,9 @@ today_forecast, demand_forecast, solar_df, wind_df, wind_solar_forecast = get_fo
 #                 'Check the code at https://github.com/paduel/streamlit_finance_chart')
 
 pricing = get_tou_pricing(site, start_localized, end_localized)
+wind_solar_forecast = wind_solar_forecast.sort_values('INTERVALSTARTTIME_GMT').loc[(wind_solar_forecast['INTERVALSTARTTIME_GMT'] >= start_localized) & (wind_solar_forecast['INTERVALSTARTTIME_GMT'] <= end_localized)]
+solar_df = solar_df.sort_values('INTERVALSTARTTIME_GMT').loc[(solar_df['INTERVALSTARTTIME_GMT'] >= start_localized) & (solar_df['INTERVALSTARTTIME_GMT'] <= end_localized)]
+wind_df = wind_df.sort_values('INTERVALSTARTTIME_GMT').loc[(wind_df['INTERVALSTARTTIME_GMT'] >= start_localized) & (wind_df['INTERVALSTARTTIME_GMT'] <= end_localized)]
 # populate main column with availability chart
 col1.column_config = {'justify': 'center'}
 with col1:
@@ -339,36 +356,42 @@ with col1:
         width=800,
         height=250
     ).add_params(brush).transform_filter(brush)
-    if False:
-        solar_chart = alt.Chart(solar_df.reset_index(), title='Solar Energy Forecast').mark_bar(size=15).encode(
-            x=alt.X('index', title='Time'),
-            y=alt.Y('MW', title='Solar Power (MW)'),
-            tooltip=[alt.Tooltip('INTERVALSTARTTIME_GMT', title='Time'),
-                     alt.Tooltip('MW', title='Solar Power Availabile (MW)')],
-            color=alt.condition(solar_brush, alt.value('green'), alt.value('lightgray'))
-        ).properties(
-            width=800,
-            height=250
-        ).add_params(solar_brush)
 
-    solar_chart = alt.Chart(wind_solar_forecast, title='Renewable Energy Forecast').mark_bar(size=15).encode(
+    solar = alt.Chart(solar_df, title='Solar Forecast').mark_bar(size=15, color='orange').encode(
         x=alt.X('INTERVALSTARTTIME_GMT:T', title='Time'),
-        y=alt.Y('MW', title='Solar Power (MW)'),
+        y=alt.Y('MW', title='Forecasted Solar Energy (MW)'),
         tooltip=[alt.Tooltip('INTERVALSTARTTIME_GMT', title='Time'),
-                 alt.Tooltip('MW', title='Solar Power Availabile (MW)')],
-        color='RENEWABLE_TYPE:N'
+                 alt.Tooltip('MW', title='Solar (MW)')],
+        color=alt.Color('RENEWABLE_TYPE:N', title='Renewable Type')
+
     ).properties(
         width=800,
         height=250
-    )#.add_params(solar_brush)
+    ).add_params(brush)
+
+    wind = alt.Chart(wind_df, title='Wind Forecast').mark_bar(size=15, color='steelblue').encode(
+        x=alt.X('INTERVALSTARTTIME_GMT:T', title='Time'),
+        y=alt.Y('MW', title='Forecasted Wind Energy (MW)'),
+        tooltip=[alt.Tooltip('INTERVALSTARTTIME_GMT', title='Time'),
+                 alt.Tooltip('MW', title='Wind (MW)')],
+        color=alt.Color('RENEWABLE_TYPE:N', title='Renewable Type')
+    ).properties(
+        width=800,
+        height=250
+    ).add_params(brush)
+
+    solar_chart = solar + wind
+    solar_chart = solar_chart.properties(title='Renewable Energy Forecast')
+    solar_chart.layer[0].encoding.y.title = 'Forecasted Renewable Energy (MW)'
+    solar_chart.layer[1].encoding.y.title = 'Forecasted Renewable Energy (MW)'
 
     if eco & cost:
-        #need to add pricing chart back
+        solar_chart = set_renewable_chart_legend_pos(solar_chart, 700, 690)
         st.altair_chart(alt.vconcat(availability_chart, pricing_chart, solar_chart).resolve_scale(x='shared'))
     elif eco:
+        solar_chart = set_renewable_chart_legend_pos(solar_chart, 700, 310)
         st.altair_chart(alt.vconcat(availability_chart, solar_chart).resolve_scale(x='shared'))
     elif cost:
-        #need to add pricing chart back
         st.altair_chart(alt.vconcat(availability_chart, pricing_chart).resolve_scale(x='shared'))
     else:
         st.altair_chart(availability_chart)
@@ -402,6 +425,6 @@ with col2:
     else:
         col2_1.write('Unable to retrieve forecast data')
         if col2_1.button('Retry'):
-            try_forecast(site)
+            get_forecasts(site)
     st.subheader("EV Charging Station Location")
     folium_static(m)
