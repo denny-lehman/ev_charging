@@ -33,8 +33,7 @@ on:
 env:
   AWS_REGION: us-east-1              # set this to your preferred AWS region, e.g. us-west-1
   ECR_REGISTRY: 241112547949.dkr.ecr.us-east-1.amazonaws.com
-  CONTAINER_NAME: MY_CONTAINER_NAME           # set this to the name of the container in the
-                                               # containerDefinitions section of your task definition
+
 
 permissions:
   contents: read
@@ -90,5 +89,5 @@ jobs:
         SSH_PRIVATE_KEY: ${{ secrets.CHARGEBUDDY_ACTIONRUNNER }}
       run: |
         cat deploy.sh | ssh -oStrictHostKeyChecking=no -i ssh_private_key ubuntu@34.231.106.254 'cat > ./deploy.sh'
-        cat docker-compose.yaml | ssh -oStrictHostKeyChecking=no -i ssh_private_key ubuntu@34.231.106.254 'bash -c "cd application && cat > docker-compose.yaml && chmod -R 755 ./deploy.sh && ./deploy.sh && cd .. && rm -rf application"'
+        cat docker-compose.yaml | ssh -oStrictHostKeyChecking=no -i ssh_private_key ubuntu@34.231.106.254 'bash -c "cd application && cat > docker-compose.yml && chmod -R 755 ./deploy.sh && ./deploy.sh && cd .. && rm -rf application"'
   
