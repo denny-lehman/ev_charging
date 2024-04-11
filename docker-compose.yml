@@ -1,0 +1,21 @@
+
+services:
+  app:
+    container_name: app
+    image: 241112547949.dkr.ecr.us-east-1.amazonaws.com/charge-buddy:latest
+    build: .
+    restart: always
+    ports:
+      - "8501:8501"
+    command: streamlit run app.py
+
+
+
+  nginx:
+    container_name: nginx
+    restart: always
+    build: ./nginx
+    ports:
+      - "80:80"
+    depends_on:
+      - app
