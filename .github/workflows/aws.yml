@@ -89,5 +89,5 @@ jobs:
         SSH_PRIVATE_KEY: ${{ secrets.CHARGEBUDDY_ACTIONRUNNER }}
       run: |
         cat deploy.sh | ssh -oStrictHostKeyChecking=no -i ssh_private_key ubuntu@34.231.106.254 'cat > ./deploy.sh'
-        cat docker-compose.yml | ssh -oStrictHostKeyChecking=no -i ssh_private_key ubuntu@34.231.106.254 'bash -c "cat > docker-compose.yml && chmod -R 755 ./deploy.sh && ./deploy.sh && cd .. && rm -rf application"'
+        cat docker-compose.yml | ssh -oStrictHostKeyChecking=no -i ssh_private_key ubuntu@34.231.106.254 'bash -c "cat > docker-compose.yml && chmod -R 755 ./deploy.sh && ./deploy.sh "'
   
