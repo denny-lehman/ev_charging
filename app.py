@@ -9,6 +9,8 @@ import altair as alt
 import os
 from datetime import datetime
 import pytz
+import folium
+from streamlit_folium import folium_static
 from typing import Tuple
 print(os.getcwd())
 from src.data_preprocessing import datetime_processing, userinput_processing, holiday_processing, create_x, \
@@ -250,6 +252,12 @@ with col1:
 
 
     future_weather = get_processed_hourly_7day_weather(*site2latlon[st.session_state['site']])
+    m = folium.Map(location=[*site2latlon[st.session_state['site']]], zoom_start=5)
+    folium.Marker(
+            location=[*site2latlon[st.session_state['site']]],
+            popup=f"{st.session_state['site']}",
+            icon=folium.Icon(color="green")
+    ).add_to(m)
     future_weather['site'] = st.session_state['site']
 
     assert {'site', 'time'}.issubset(future_weather.reset_index().columns)
@@ -395,3 +403,5 @@ with col2:
         col2_1.write('Unable to retrieve forecast data')
         if col2_1.button('Retry'):
             try_forecast(site)
+    st.subheader("EV Charging Station Location")
+    folium_static(m)
