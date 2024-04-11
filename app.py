@@ -173,14 +173,14 @@ st.set_page_config(page_title='Charge Buddy', page_icon=':zap:', layout='wide', 
 # title in markdown to allow for styling and positioning
 st.markdown("<h1 style='text-align: center; color: orange;'>Charge Buddy</h1>", unsafe_allow_html=True)
 
+# create a tagline for the app
+st.markdown("<h3 style='text-align: center; color: white;'>Helping EV Owners find the best time to charge</h3>", unsafe_allow_html=True)
+
 # creates a horizontal line
 st.divider()
 
 # create columns for layout of the app (1st column is 70% of the page, 2nd column is 30%)
 col1, col2 = st.columns([0.7, 0.3])
-
-# create a tagline for the app
-st.subheader('Helping EV owners find the best time to charge')
 
 # create a sidebar for user input
 st.sidebar.title("When and where?")
@@ -357,18 +357,6 @@ with col1:
         height=250
     ).add_params(brush).transform_filter(brush)
 
-    if False:
-        solar_chart = alt.Chart(wind_solar_forecast, title='Renewable Energy Forecast').mark_bar(size=15).encode(
-            x=alt.X('INTERVALSTARTTIME_GMT:T', title='Time'),
-            y=alt.Y('MW', title='Solar Power (MW)'),
-            tooltip=[alt.Tooltip('INTERVALSTARTTIME_GMT', title='Time'),
-                     alt.Tooltip('MW', title='Solar Power Availabile (MW)')],
-            color='RENEWABLE_TYPE:N'
-        ).properties(
-            width=800,
-            height=250
-        )#.add_params(solar_brush)
-
     solar = alt.Chart(solar_df, title='Solar Forecast').mark_bar(size=15, color='orange').encode(
         x=alt.X('INTERVALSTARTTIME_GMT:T', title='Time'),
         y=alt.Y('MW', title='Forecasted Solar Energy (MW)'),
@@ -437,6 +425,6 @@ with col2:
     else:
         col2_1.write('Unable to retrieve forecast data')
         if col2_1.button('Retry'):
-            try_forecast(site)
+            get_forecasts(site)
     st.subheader("EV Charging Station Location")
     folium_static(m)
