@@ -242,3 +242,20 @@ def create_all_site_x(df):
             all_X = pd.concat([all_X, X], axis=0)
     return all_X
 
+
+import datetime
+def make_time_features(start_date: datetime.datetime, end_date: datetime.date, tz='UTC-07:00'):
+    """returns a dataframe of time features (day of week, hour, month, and is_holiday"""
+    print('making time feature dataframe')
+    print(start_date, end_date)
+    print(type(start_date))
+    # assert isinstance(start_date)
+    time_df = pd.DataFrame(index=pd.date_range(start_date, end_date, inclusive='both', freq='h', tz=tz),
+                           columns=['dow', 'hour', 'month'])
+    time_df['dow'] = time_df.index.dayofweek
+    time_df['hour'] = time_df.index.hour
+    time_df['month'] = time_df.index.month
+
+    time_df = holiday_processing(time_df)
+    return time_df
+
