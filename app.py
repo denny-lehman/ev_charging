@@ -8,6 +8,7 @@ import logging
 import altair as alt
 import os
 from datetime import datetime
+import pytz
 
 print(os.getcwd())
 from src.data_preprocessing import datetime_processing, userinput_processing, holiday_processing, create_x, \
@@ -91,7 +92,7 @@ site2latlon = {'Caltech':(34.134785646454844, -118.11691382579643),
 sites = ['Office001', 'Caltech', 'JPL']
 site_ids = [2, 1, 19]
 site2id = {k: v for (k, v) in zip(sites, site_ids)}
-today_forecast, demand_forecast, solar_df, wind_df, pricing = None, None, None, None, None
+today_forecast, demand_forecast, solar_df, wind_df, pricing, wind_solar_forecast = None, None, None, None, None, None
 
 st.set_page_config(page_title='Charge Buddy', page_icon=':zap:', layout='wide', initial_sidebar_state='auto')
 
@@ -116,11 +117,6 @@ site = st.sidebar.selectbox('Click below to select a charger location',
                             sites, index=1,
                             )
 
-# create a dropdown menu for the user to select a preference
-#user_preferences = ['No Preference', 'Eco-Friendly', 'Low Cost']
-#user_preference = st.sidebar.selectbox('Select your preference',
-#                                       user_preferences, index=0,
-#                                       )
 st.sidebar.subheader('Select your preference')
 eco = st.sidebar.checkbox('Eco-Friendly')
 cost = st.sidebar.checkbox('Low Cost')
@@ -138,7 +134,7 @@ start_date = st.sidebar.date_input("Start date", value=today, min_value=today, m
 end_date = st.sidebar.date_input("End date", value=start_date + pd.Timedelta('1d'), max_value=today + pd.Timedelta('7d'))
 s_ls = [int(x) for x in str(start_date).split('-')]
 e_ls = [int(x) for x in str(end_date).split('-')]
-start, end = datetime(s_ls[0], s_ls[1], s_ls[2]), datetime(e_ls[0], e_ls[1], e_ls[2])
+start, end = pytz.utc.localize(datetime(s_ls[0], s_ls[1], s_ls[2])), pytz.utc.localize(datetime(e_ls[0], e_ls[1], e_ls[2]))
 
 range_start_ls = [int(x) for x in str(today).split('-')]
 range_end_ls = [int(x) for x in str(today + pd.Timedelta('7d')).split('-')]
@@ -190,15 +186,17 @@ def get_forecasts(site):
         demand_forecast = st.session_state['Caltech_demand_forecast']
         solar_df = st.session_state['Caltech_solar_df']
         wind_df = st.session_state['Caltech_wind_df']
-    return today_forecast, demand_forecast, solar_df, wind_df
+        wind_solar_forecast = st.session_state['Caltech_wind_solar_forecast']
+    return today_forecast, demand_forecast, solar_df, wind_df, wind_solar_forecast
 
 #
 def try_forecast(site):
-    today_forecast, demand_forecast, solar_df, wind_df = get_forecasts(site)
+    today_forecast, demand_forecast, solar_df, wind_df, wind_solar_forecast = get_forecasts(site)
     st.session_state[f'{site}_today_forecast'] = today_forecast
     st.session_state[f'{site}_demand_forecast'] = demand_forecast
     st.session_state[f'{site}_solar_df'] = solar_df
     st.session_state[f'{site}_wind_df'] = wind_df
+    st.session_state[f'{site}_wind_solar_forecast'] = wind_solar_forecast
 
 
 if 'key' not in st.session_state:
@@ -211,10 +209,11 @@ else:
     #    for site in sites:
     #        try_forecast(site)
     # else:
-    today_forecast, demand_forecast, solar_df, wind_df = st.session_state[f'{site}_today_forecast'], \
+    today_forecast, demand_forecast, solar_df, wind_df, wind_solar_forecast = st.session_state[f'{site}_today_forecast'], \
         st.session_state[f'{site}_demand_forecast'], \
         st.session_state[f'{site}_solar_df'], \
-        st.session_state[f'{site}_wind_df']
+        st.session_state[f'{site}_wind_df'], \
+        st.session_state[f'{site}_wind_solar_forecast']
 
 
 #st.sidebar.info('EDIT ME: This app is a simple example of '
@@ -229,7 +228,6 @@ col1.column_config = {'justify': 'center'}
 with col1:
     st.markdown(f"<h2 style='text-align: center; color: white;'>Availability at {site} </h2>",
                 unsafe_allow_html=True)
-
     model, model_final, reg_model = load_model()
 
     st.write('Availability from ', start_date, ' to ', end_date)
@@ -254,8 +252,8 @@ with col1:
     brush = alt.selection(type='interval', encodings=['x'])
     solar_brush = alt.selection(type='interval', encodings=['x'])
     scale = alt.Scale(domain=[pd.to_datetime(start_date), pd.to_datetime(end_date)])
-
-    availability_chart = alt.Chart(X.reset_index()).mark_bar(size=15).encode(
+    wind_solar_forecast = wind_solar_forecast.sort_values('INTERVALSTARTTIME_GMT').loc[(wind_solar_forecast['INTERVALSTARTTIME_GMT'] >= start) & (wind_solar_forecast['INTERVALSTARTTIME_GMT'] <= end)]
+    availability_chart = alt.Chart(X[start:end].reset_index()).mark_bar(size=15).encode(
         x=alt.X('index:T', title='Time'),
         y=alt.Y('% available', title='Availability (%)'),
         tooltip=[alt.Tooltip('index', title='Time'),
@@ -266,7 +264,7 @@ with col1:
         height=250
     ).add_params(brush)
 
-    pricing_chart = alt.Chart(pricing.reset_index(), title='Pricing').mark_line().encode(
+    pricing_chart = alt.Chart(pricing[start:end].reset_index(), title='Pricing').mark_line().encode(
         x=alt.X('index:T', title='Time'),
         y=alt.Y('price', title='Price ($/kWh)'),
         tooltip=[alt.Tooltip('index', title='Time'),
@@ -276,17 +274,28 @@ with col1:
         width=800,
         height=250
     ).add_params(brush).transform_filter(brush)
+    if 1 == 2:
+        solar_chart = alt.Chart(solar_df.reset_index(), title='Solar Energy Forecast').mark_bar(size=15).encode(
+            x=alt.X('INTERVALSTARTTIME_GMT:T', title='Time'),
+            y=alt.Y('MW', title='Solar Power (MW)'),
+            tooltip=[alt.Tooltip('INTERVALSTARTTIME_GMT', title='Time'),
+                     alt.Tooltip('MW', title='Solar Power Availabile (MW)')],
+            color=alt.condition(solar_brush, alt.value('green'), alt.value('lightgray'))
+        ).properties(
+            width=800,
+            height=250
+        ).add_params(solar_brush)
 
-    solar_chart = alt.Chart(solar_df.reset_index(), title='Solar Energy Forecast').mark_bar(size=15).encode(
+    solar_chart = alt.Chart(wind_solar_forecast, title='Renewable Energy Forecast').mark_bar(size=15).encode(
         x=alt.X('INTERVALSTARTTIME_GMT:T', title='Time'),
         y=alt.Y('MW', title='Solar Power (MW)'),
         tooltip=[alt.Tooltip('INTERVALSTARTTIME_GMT', title='Time'),
                  alt.Tooltip('MW', title='Solar Power Availabile (MW)')],
-        color=alt.condition(solar_brush, alt.value('green'), alt.value('lightgray'))
+        color='RENEWABLE_TYPE:N'
     ).properties(
         width=800,
         height=250
-    ).add_params(solar_brush)
+    )#.add_params(solar_brush)
 
     if eco & cost:
         st.altair_chart(alt.vconcat(availability_chart, pricing_chart, solar_chart).resolve_scale(x='shared'))
