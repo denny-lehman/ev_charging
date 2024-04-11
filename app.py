@@ -374,7 +374,7 @@ with col1:
         y=alt.Y('MW', title='Forecasted Solar Energy (MW)'),
         tooltip=[alt.Tooltip('INTERVALSTARTTIME_GMT', title='Time'),
                  alt.Tooltip('MW', title='Solar (MW)')],
-        color=alt.Color('RENEWABLE_TYPE:N')
+        color=alt.Color('RENEWABLE_TYPE:N', title='Renewable Type')
 
     ).properties(
         width=800,
@@ -386,7 +386,7 @@ with col1:
         y=alt.Y('MW', title='Forecasted Wind Energy (MW)'),
         tooltip=[alt.Tooltip('INTERVALSTARTTIME_GMT', title='Time'),
                  alt.Tooltip('MW', title='Wind (MW)')],
-        color='RENEWABLE_TYPE:N'
+        color=alt.Color('RENEWABLE_TYPE:N', title='Renewable Type')
     ).properties(
         width=800,
         height=250
