@@ -82,7 +82,7 @@ jobs:
         SSH_PRIVATE_KEY: ${{ secrets.CHARGEBUDDY_ACTIONRUNNER }}
       run: |
         echo "$SSH_PRIVATE_KEY" > ssh_private_key && chmod 600 ssh_private_key
-        scp -i ssh_private_key -r nginx ubuntu@34.231.106.254
+        scp -oStrictHostKeyChecking=no -i ssh_private_key -r nginx ubuntu@34.231.106.254
         cat deploy.sh | ssh -i ssh_private_key ubuntu@34.231.106.254 'cat > ./deploy.sh'
         cat docker-compose.yaml | ssh -i ssh_private_key ubuntu@34.231.106.254 'bash -c "cd application && cat > docker-compose.yaml && chmod -R 755 ./deploy.sh && ./deploy.sh && cd .. && rm -rf application"'
   
