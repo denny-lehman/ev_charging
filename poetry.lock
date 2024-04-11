@@ -1057,6 +1057,20 @@ watchdog = {version = ">=2.1.5", markers = "platform_system != \"Darwin\""}
 snowflake = ["snowflake-connector-python (>=2.8.0)", "snowflake-snowpark-python (>=0.9.0)"]
 
 [[package]]
+name = "streamlit-geolocation"
+version = "0.0.10"
+description = "A custom Streamlit component to get the users location via js navigator.geolocation."
+optional = false
+python-versions = ">=3.8"
+files = [
+    {file = "streamlit_geolocation-0.0.10-py3-none-any.whl", hash = "sha256:e9d9eb61238db468076ef374027a1691fa6696f44d4e4472b0123df03dc0d9ea"},
+    {file = "streamlit_geolocation-0.0.10.tar.gz", hash = "sha256:0617a39aa26a6019f9b6989e31a310742fe5fe1728321474cf8b5f03a7146d4c"},
+]
+
+[package.dependencies]
+streamlit = ">=1.0.0"
+
+[[package]]
 name = "tenacity"
 version = "8.2.3"
 description = "Retry code until it succeeds"
@@ -1233,4 +1247,4 @@ scikit-learn = ["scikit-learn"]
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.10"
-content-hash = "20ffc3fb12ca6903b822aefafc4afbe5241615b7bb8c7f3ad9397d747d0a991a"
+content-hash = "3de4a84e0157f76c7d2450a8ea0162c39bb9bc6a1aab3c8161bda596574dbf58"

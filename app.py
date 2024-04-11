@@ -17,6 +17,8 @@ import src.weather as w
 import src.oasis as o
 from src.weather import get_processed_hourly_7day_weather
 import logging
+
+from streamlit_geolocation import streamlit_geolocation
 logger = logging.getLogger(__name__)
 logger.addHandler(logging.StreamHandler())
 logger.setLevel(logging.INFO)
@@ -207,6 +209,9 @@ range_end_ls = [int(x) for x in str(today + pd.Timedelta('7d')).split('-')]
 range_start = datetime(range_start_ls[0], range_start_ls[1], range_start_ls[2])
 range_end = datetime(range_end_ls[0], range_end_ls[1], range_end_ls[2])
 
+with st.sidebar:
+    loc = streamlit_geolocation()
+    st.write(f"Current Location: {loc}")
 
 
 
