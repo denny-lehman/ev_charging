@@ -5,7 +5,7 @@ services:
       replicas: 1
     ports:
       - "8501:8501"
-    command: streamlit run app.py
+    command: streamlit run app.py --server.port=8501 --server.headless=true --server.enableCORS=false --server.enableWebsocketCompression=false
 
   nginx:
     container_name: nginx
