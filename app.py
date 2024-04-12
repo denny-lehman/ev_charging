@@ -157,8 +157,7 @@ def make_recommendation(avail_df, pricing_df, solar_df, wind_df):
     availability = avail_df.loc[avail_df['% available'] > 90, :]
     pricing = pricing_df.loc[pricing_df['price'] < 0.20, :]
     MW = wind_solar_df.loc[wind_solar_df['MW'] > wind_solar_df['MW'].mean(), :]
-    availability = availability['% available']
-    MW = MW[['datetime', 'MW']]
+
 
     if eco & cost:
         recommendation = pd.merge(availability, pricing, on='datetime', how='inner')
@@ -171,14 +170,14 @@ def make_recommendation(avail_df, pricing_df, solar_df, wind_df):
         elif len(pd.merge(pricing, MW, on='datetime', how='inner')) > 0:
             recommendation = pd.merge(pricing, MW, on='datetime', how='inner')
         else:
-            recommendation = availability
+            recommendation = availability.reset_index()
         return recommendation
     elif eco:
         recommendation = pd.merge(availability, MW, on='datetime', how='inner')
         if len(recommendation) > 0:
             return recommendation
         else:
-            return availability
+            return availability.reset_index()
     elif cost:
         recommendation = pd.merge(pricing, MW, on='datetime', how='inner')
         if len(recommendation) > 0:
@@ -186,7 +185,7 @@ def make_recommendation(avail_df, pricing_df, solar_df, wind_df):
         else:
             return pricing
     else:
-        return availability
+        return availability.reset_index()
 #
 # def try_forecast(site:str):
 # today_forecast, demand_forecast, solar_df, wind_df, wind_solar_forecast = get_forecasts(site)
@@ -376,23 +375,28 @@ with col1:
     prediction[prediction < 0] = 0
 
     X['% available'] = prediction
-
+    X = X.groupby(X.index).mean()
+    st.write(X)
     recommendation = make_recommendation(X, pricing, solar_df, wind_df)
-    min = pd.to_datetime(recommendation['datetime'].min(), format='%I: %p', utc=True)
-    max = pd.to_datetime(recommendation['datetime'].max(), format='%I: %p', utc=True)
-    recommendation_string = f"The recommended time to charge is between {min.date()} at {min.strftime('%I:%M %p')} and {max.date()} at {max.strftime('%I:%M %p')} based on your stated preferences"
-    st.markdown(f"<p style='text-align: center; color: orange;'>{recommendation_string}</p>", unsafe_allow_html=True)
+    if len(recommendation) > 0:
+        min = pd.to_datetime(recommendation['datetime'].min(), format='%I: %p', utc=True)
+        max = pd.to_datetime(recommendation['datetime'].max(), format='%I: %p', utc=True)
+        recommendation_string = f"The recommended time to charge is between {min.date()} at {min.strftime('%I:%M %p')} and {max.date()} at {max.strftime('%I:%M %p')} based on your stated preferences"
+        st.markdown(f"<p style='text-align: center; color: orange;'>{recommendation_string}</p>", unsafe_allow_html=True)
+    else:
+        st.markdown(f"<p style='text-align: center; color: orange;'>No recommendations available based on your stated preferences</p>", unsafe_allow_html=True)
     st.write('Availability from ', start_date, ' to ', end_date)
 
     wind_solar_forecast = wind_solar_forecast.sort_values('INTERVALSTARTTIME_GMT').loc[
         (wind_solar_forecast['INTERVALSTARTTIME_GMT'] >= start_localized) & (
                     wind_solar_forecast['INTERVALSTARTTIME_GMT'] <= end_localized)]
+
     availability_chart = alt.Chart(X.reset_index()).mark_bar(size=12).encode(
         x=alt.X('datetime:T', title='Time'),
-        y=alt.Y('% available', title='Availability (%)'),
-        tooltip=[alt.Tooltip('datetime', title='Time'),
-                 alt.Tooltip('% available', title='Availability (%)')],
-        color=alt.value('steelblue')
+        y=alt.Y('% available:Q', title='Availability (%)'),
+        tooltip=[alt.Tooltip('datetime:T', title='Time'),
+             alt.Tooltip('% available:Q', title='Availability (%)')],
+        color=alt.condition(alt.expr.datum['% available'] > 90, alt.value('green'), alt.value('steelblue'))
     ).properties(
         width=800,
         height=250
@@ -401,7 +405,7 @@ with col1:
     #logger.info(f'pricing is {pricing.reset_index().info()}')
     pricing_chart = alt.Chart(pricing.reset_index(), title='Pricing').mark_line().encode(
         x=alt.X('index:T', title='Time'),
-        y=alt.Y('price', title='Price ($/kWh)'),
+        y=alt.Y('price:Q', title='Price ($/kWh)'),
         tooltip=[alt.Tooltip('index', title='Time'),
                  alt.Tooltip('price', title='Price ($/kWh)')],
         color=alt.value('steelblue')
@@ -439,12 +443,12 @@ with col1:
 
     if eco & cost:
         solar_chart = set_renewable_chart_legend_pos(solar_chart, 700, 690)
-        st.altair_chart(alt.vconcat(availability_chart, pricing_chart, solar_chart).resolve_scale(x='shared'))
+        st.altair_chart(alt.vconcat(availability_chart, pricing_chart, solar_chart).resolve_scale(x='shared', y='independent'))
     elif eco:
         solar_chart = set_renewable_chart_legend_pos(solar_chart, 700, 310)
-        st.altair_chart(alt.vconcat(availability_chart, solar_chart).resolve_scale(x='shared'))
+        st.altair_chart(alt.vconcat(availability_chart, solar_chart).resolve_scale(x='shared', y='independent'))
     elif cost:
-        st.altair_chart(alt.vconcat(availability_chart, pricing_chart).resolve_scale(x='shared'))
+        st.altair_chart(alt.vconcat(availability_chart, pricing_chart).resolve_scale(x='shared', y='independent'))
     else:
         st.altair_chart(availability_chart)
 
