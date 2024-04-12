@@ -83,7 +83,7 @@ jobs:
       env:
         SSH_PRIVATE_KEY: ${{ secrets.CHARGEBUDDY_ACTIONRUNNER }}
       run: |
-        export ${{ build-image.IMAGE_TAG }}
+        export $image
         echo "$SSH_PRIVATE_KEY" > ssh_private_key && chmod 600 ssh_private_key
         ssh -oStrictHostKeyChecking=no -i ssh_private_key ubuntu@34.231.106.254
 
