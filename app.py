@@ -115,7 +115,6 @@ def get_tou_pricing(site, start, end, tz='UTC-07:00'):
             # off-peak
             else:
                 pricing.loc[i, 'price'] = 0.14
-
     return pricing
 
 
@@ -149,15 +148,45 @@ def set_renewable_chart_legend_pos(chart, x, y):
         titleAnchor='start')
     return chart
 
-def make_recommendation():
+def make_recommendation(avail_df, pricing_df, solar_df, wind_df):
+
+    wind_solar_df = pd.merge(solar_df, wind_df, on='INTERVALSTARTTIME_GMT', how='outer')
+    wind_solar_df['MW'] = wind_solar_df['MW_x'] + wind_solar_df['MW_y']
+    wind_solar_df = wind_solar_df.rename(columns={'INTERVALSTARTTIME_GMT': 'datetime'})
+    pricing_df['datetime'] = pricing_df.index
+    availability = avail_df.loc[avail_df['% available'] > 90, :]
+    pricing = pricing_df.loc[pricing_df['price'] < 0.20, :]
+    MW = wind_solar_df.loc[wind_solar_df['MW'] > wind_solar_df['MW'].mean(), :]
+    availability = availability['% available']
+    MW = MW[['datetime', 'MW']]
+
     if eco & cost:
-        pass
+        recommendation = pd.merge(availability, pricing, on='datetime', how='inner')
+        if len(recommendation) > 0:
+            if len(pd.merge(recommendation, MW, on='datetime', how='inner')) > 0:
+                recommendation = pd.merge(recommendation, MW, on='datetime', how='inner')
+                return recommendation
+        elif len(pd.merge(availability, MW, on='datetime', how='inner')) > 0:
+            recommendation = pd.merge(availability, MW, on='datetime', how='inner')
+        elif len(pd.merge(pricing, MW, on='datetime', how='inner')) > 0:
+            recommendation = pd.merge(pricing, MW, on='datetime', how='inner')
+        else:
+            recommendation = availability
+        return recommendation
     elif eco:
-        pass
+        recommendation = pd.merge(availability, MW, on='datetime', how='inner')
+        if len(recommendation) > 0:
+            return recommendation
+        else:
+            return availability
     elif cost:
-        pass
+        recommendation = pd.merge(pricing, MW, on='datetime', how='inner')
+        if len(recommendation) > 0:
+            return recommendation
+        else:
+            return pricing
     else:
-        pass
+        return availability
 #
 # def try_forecast(site:str):
 # today_forecast, demand_forecast, solar_df, wind_df, wind_solar_forecast = get_forecasts(site)
@@ -273,6 +302,7 @@ wind_df = wind_df.sort_values('INTERVALSTARTTIME_GMT').loc[
 # populate main column with availability chart
 col1.column_config = {'justify': 'center'}
 with col1:
+
     st.markdown(f"<h2 style='text-align: center; color: white;'>Availability at {site} </h2>",
                 unsafe_allow_html=True)
     model, model_final, reg_model = load_model()
@@ -349,6 +379,10 @@ with col1:
     prediction[prediction < 0] = 0
 
     X['% available'] = prediction
+    # TODO: add a written recommendation based on the following intersection of user preferences
+    recommendation = make_recommendation(X, pricing, solar_df, wind_df)
+    st.write(f"The best time to charge is: {recommendation['datetime'].min()} to {recommendation['datetime'].max()}")
+
 
     wind_solar_forecast = wind_solar_forecast.sort_values('INTERVALSTARTTIME_GMT').loc[
         (wind_solar_forecast['INTERVALSTARTTIME_GMT'] >= start_localized) & (
