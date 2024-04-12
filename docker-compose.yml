@@ -1,6 +1,7 @@
 services:
   app:
     image: 241112547949.dkr.ecr.us-east-1.amazonaws.com/charge-buddy:latest
+    network_mode: host
     deploy:
       replicas: 1
     ports:
