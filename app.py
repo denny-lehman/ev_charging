@@ -396,12 +396,12 @@ with col1:
         x=alt.X('datetime:T', title='Time'),
         y=alt.Y('% available:Q', title='Availability (%)'),
         tooltip=[alt.Tooltip('datetime:T', title='Time'),
-             alt.Tooltip('% available:Q', title='Availability (%)')],
+                 alt.Tooltip('% available:Q', format=",.1f", title='Availability (%)')],
         color=alt.condition(alt.expr.datum['% available'] > 90, alt.value('green'), alt.value('steelblue'))
     ).properties(
         width=800,
         height=250
-    )
+    ).interactive()
 
     #logger.info(f'pricing is {pricing.reset_index().info()}')
     pricing_chart = alt.Chart(pricing.reset_index(), title='Pricing').mark_line().encode(
@@ -413,7 +413,7 @@ with col1:
     ).properties(
         width=800,
         height=250
-    )
+    ).interactive()
 
     solar = alt.Chart(solar_df, title='Solar Forecast').mark_bar().encode(
         x=alt.X('INTERVALSTARTTIME_GMT:T', title='Time'),
@@ -424,7 +424,7 @@ with col1:
     ).properties(
         width=800,
         height=250
-    )
+    ).interactive()
 
     wind = alt.Chart(wind_df, title='Wind Forecast').mark_bar().encode(
         x=alt.X('INTERVALSTARTTIME_GMT:T', title='Time'),
@@ -435,7 +435,7 @@ with col1:
     ).properties(
         width=800,
         height=250
-    )
+    ).interactive()
 
     solar_chart = solar + wind
     solar_chart = solar_chart.properties(title='Renewable Energy Forecast')
