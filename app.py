@@ -233,15 +233,10 @@ with st.sidebar:
     else:
         st.write('Waiting for location...')
 
-
-
-
 # TODO: is this a switch?
 
 st.session_state.key = 0
 today_forecast, demand_forecast, solar_df, wind_df, wind_solar_forecast = get_forecasts(st.session_state.site)
-
-
 
 #st.sidebar.info('EDIT ME: This app is a simple example of '
 #                 'using Streamlit to create a financial data web app.\n'
@@ -253,6 +248,7 @@ pricing = get_tou_pricing(site, start_localized, end_localized)
 wind_solar_forecast = wind_solar_forecast.sort_values('INTERVALSTARTTIME_GMT').loc[(wind_solar_forecast['INTERVALSTARTTIME_GMT'] >= start_localized) & (wind_solar_forecast['INTERVALSTARTTIME_GMT'] <= end_localized)]
 solar_df = solar_df.sort_values('INTERVALSTARTTIME_GMT').loc[(solar_df['INTERVALSTARTTIME_GMT'] >= start_localized) & (solar_df['INTERVALSTARTTIME_GMT'] <= end_localized)]
 wind_df = wind_df.sort_values('INTERVALSTARTTIME_GMT').loc[(wind_df['INTERVALSTARTTIME_GMT'] >= start_localized) & (wind_df['INTERVALSTARTTIME_GMT'] <= end_localized)]
+
 # populate main column with availability chart
 col1.column_config = {'justify': 'center'}
 with col1:
@@ -427,4 +423,4 @@ with col2:
         if col2_1.button('Retry'):
             get_forecasts(site)
     st.subheader("EV Charging Station Location")
-    folium_static(m)
+    folium_static(m,  width=450, height=450)
