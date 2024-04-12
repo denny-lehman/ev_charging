@@ -48,6 +48,8 @@ jobs:
     environment: production
 
     steps:
+    - name: Delete unnecessary tools folder
+      run: rm -rf /opt/hostedtoolcache
     - name: Checkout
       uses: actions/checkout@v3
 
@@ -72,9 +74,9 @@ jobs:
         # Build a docker container and
         # push it to ECR so that it can
         # be deployed to ECS.
-        docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
-        docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
-        echo "image=$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG" >> $GITHUB_OUTPUT
+        docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:latest .
+        docker push $ECR_REGISTRY/$ECR_REPOSITORY:latest
+        echo "image=$ECR_REGISTRY/$ECR_REPOSITORY:latest" >> $GITHUB_OUTPUT
 
     - name: SSH Key Creation 
       env:
@@ -88,7 +90,7 @@ jobs:
       env:
         SSH_PRIVATE_KEY: ${{ secrets.CHARGEBUDDY_ACTIONRUNNER }}
       run: |
-        scp -oStrictHostKeyChecking=no -i  ssh_private_key -r nginx ubuntu@34.231.106.254:~/nginx
+        scp -oStrictHostKeyChecking=no -i  ssh_private_key -r nginx ubuntu@34.231.106.254:~
         cat deploy.sh | ssh -oStrictHostKeyChecking=no -i ssh_private_key ubuntu@34.231.106.254 'cat > ./deploy.sh'
         cat docker-compose.yml | ssh -oStrictHostKeyChecking=no -i ssh_private_key ubuntu@34.231.106.254 'bash -c "cat > docker-compose.yml && chmod -R 755 ./deploy.sh && ./deploy.sh "'
   
