@@ -1,6 +1,6 @@
 services:
   app:
-    image: ${GITHUB_OUTPUT}
+    image: ${image}
     network_mode: host
     deploy:
       replicas: 1
