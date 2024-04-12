@@ -1,9 +1,8 @@
 services:
   app:
-    container_name: app
     image: 241112547949.dkr.ecr.us-east-1.amazonaws.com/charge-buddy:latest
-    build: .
-    restart: always
+    deploy:
+      replicas: 1
     ports:
       - "8501:8501"
     command: streamlit run app.py
