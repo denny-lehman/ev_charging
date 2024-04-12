@@ -92,9 +92,9 @@ jobs:
         SSH_PRIVATE_KEY: ${{ secrets.CHARGEBUDDY_ACTIONRUNNER }}
         IMAGE: ${{ env.IMAGE }}
       run: |
-        aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin 241112547949.dkr.ecr.us-east-1.amazonaws.com
+        ssh -oStrictHostKeyChecking=no -i ssh_private_key ubuntu@34.231.106.254 'bash -c "aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin 241112547949.dkr.ecr.us-east-1.amazonaws.com "'
         scp -oStrictHostKeyChecking=no -i  ssh_private_key -r nginx ubuntu@34.231.106.254:~
         cat docker-compose.yml | ssh -oStrictHostKeyChecking=no -i ssh_private_key ubuntu@34.231.106.254 'bash -c "cat > docker-compose.yml  "'
-        docker-compose build --build-arg IMAGE_TAG=$IMAGE
-        docker-compose up -d
+        ssh -oStrictHostKeyChecking=no -i ssh_private_key ubuntu@34.231.106.254 'bash -c "docker-compose build --build-arg IMAGE_TAG=$IMAGE"'
+        ssh -oStrictHostKeyChecking=no -i ssh_private_key ubuntu@34.231.106.254 'bash -c "docker-compose up -d"'
   
