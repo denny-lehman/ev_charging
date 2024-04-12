@@ -95,5 +95,5 @@ jobs:
         scp -oStrictHostKeyChecking=no -i  ssh_private_key -r nginx ubuntu@34.231.106.254:~
         cat docker-compose.yml | ssh -oStrictHostKeyChecking=no -i ssh_private_key ubuntu@34.231.106.254 'bash -c "cat > docker-compose.yml  "'
         docker-compose build --build-arg IMAGE_TAG=$IMAGE
-        docker-compose build --build-arg IMAGE_TAG=$IMAGE
+        docker-compose up -d
   
