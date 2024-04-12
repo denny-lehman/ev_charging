@@ -302,12 +302,9 @@ wind_df = wind_df.sort_values('INTERVALSTARTTIME_GMT').loc[
 # populate main column with availability chart
 col1.column_config = {'justify': 'center'}
 with col1:
-
     st.markdown(f"<h2 style='text-align: center; color: white;'>Availability at {site} </h2>",
                 unsafe_allow_html=True)
     model, model_final, reg_model = load_model()
-
-    st.write('Availability from ', start_date, ' to ', end_date)
 
     # get time, demand, and weather features
     # combine the 3 feature sets
@@ -379,15 +376,18 @@ with col1:
     prediction[prediction < 0] = 0
 
     X['% available'] = prediction
-    # TODO: add a written recommendation based on the following intersection of user preferences
-    recommendation = make_recommendation(X, pricing, solar_df, wind_df)
-    st.write(f"The best time to charge is: {recommendation['datetime'].min()} to {recommendation['datetime'].max()}")
 
+    recommendation = make_recommendation(X, pricing, solar_df, wind_df)
+    min = pd.to_datetime(recommendation['datetime'].min(), format='%I: %p', utc=True)
+    max = pd.to_datetime(recommendation['datetime'].max(), format='%I: %p', utc=True)
+    recommendation_string = f"The recommended time to charge is between {min.date()} at {min.strftime('%I:%M %p')} and {max.date()} at {max.strftime('%I:%M %p')} based on your stated preferences"
+    st.markdown(f"<p style='text-align: center; color: orange;'>{recommendation_string}</p>", unsafe_allow_html=True)
+    st.write('Availability from ', start_date, ' to ', end_date)
 
     wind_solar_forecast = wind_solar_forecast.sort_values('INTERVALSTARTTIME_GMT').loc[
         (wind_solar_forecast['INTERVALSTARTTIME_GMT'] >= start_localized) & (
                     wind_solar_forecast['INTERVALSTARTTIME_GMT'] <= end_localized)]
-    availability_chart = alt.Chart(X.reset_index()).mark_bar(size=15).encode(
+    availability_chart = alt.Chart(X.reset_index()).mark_bar(size=12).encode(
         x=alt.X('datetime:T', title='Time'),
         y=alt.Y('% available', title='Availability (%)'),
         tooltip=[alt.Tooltip('datetime', title='Time'),
@@ -410,7 +410,7 @@ with col1:
         height=250
     )
 
-    solar = alt.Chart(solar_df, title='Solar Forecast').mark_bar(size=15, color='orange').encode(
+    solar = alt.Chart(solar_df, title='Solar Forecast').mark_bar(size=12, color='orange').encode(
         x=alt.X('INTERVALSTARTTIME_GMT:T', title='Time'),
         y=alt.Y('MW', title='Forecasted Solar Energy (MW)'),
         tooltip=[alt.Tooltip('INTERVALSTARTTIME_GMT', title='Time'),
@@ -421,7 +421,7 @@ with col1:
         height=250
     )
 
-    wind = alt.Chart(wind_df, title='Wind Forecast').mark_bar(size=15, color='steelblue').encode(
+    wind = alt.Chart(wind_df, title='Wind Forecast').mark_bar(size=12, color='steelblue').encode(
         x=alt.X('INTERVALSTARTTIME_GMT:T', title='Time'),
         y=alt.Y('MW', title='Forecasted Wind Energy (MW)'),
         tooltip=[alt.Tooltip('INTERVALSTARTTIME_GMT', title='Time'),
