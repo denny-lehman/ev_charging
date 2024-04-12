@@ -226,7 +226,13 @@ range_end = datetime(range_end_ls[0], range_end_ls[1], range_end_ls[2])
 
 with st.sidebar:
     loc = streamlit_geolocation()
-    st.write(f"Current Location: {loc}")
+    if any(list(loc.values())):
+        st.write("Current Location: ")
+        st.write("Latitude: ", str(loc['latitude']))
+        st.write("Longitude: ", str(loc['longitude']))
+    else:
+        st.write('Waiting for location...')
+
 
 
 
