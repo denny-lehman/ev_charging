@@ -48,6 +48,8 @@ jobs:
     environment: production
 
     steps:
+    - name: Delete unnecessary tools folder
+      run: rm -rf /opt/hostedtoolcache
     - name: Checkout
       uses: actions/checkout@v3
 
