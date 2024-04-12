@@ -376,8 +376,9 @@ with col1:
 
     X['% available'] = prediction
     X = X.groupby(X.index).mean()
-    st.write(X)
+
     recommendation = make_recommendation(X, pricing, solar_df, wind_df)
+
     if len(recommendation) > 0:
         min = pd.to_datetime(recommendation['datetime'].min(), format='%I: %p', utc=True)
         max = pd.to_datetime(recommendation['datetime'].max(), format='%I: %p', utc=True)
@@ -391,7 +392,7 @@ with col1:
         (wind_solar_forecast['INTERVALSTARTTIME_GMT'] >= start_localized) & (
                     wind_solar_forecast['INTERVALSTARTTIME_GMT'] <= end_localized)]
 
-    availability_chart = alt.Chart(X.reset_index()).mark_bar(size=12).encode(
+    availability_chart = alt.Chart(X.reset_index()).mark_bar().encode(
         x=alt.X('datetime:T', title='Time'),
         y=alt.Y('% available:Q', title='Availability (%)'),
         tooltip=[alt.Tooltip('datetime:T', title='Time'),
@@ -414,7 +415,7 @@ with col1:
         height=250
     )
 
-    solar = alt.Chart(solar_df, title='Solar Forecast').mark_bar(size=12, color='orange').encode(
+    solar = alt.Chart(solar_df, title='Solar Forecast').mark_bar().encode(
         x=alt.X('INTERVALSTARTTIME_GMT:T', title='Time'),
         y=alt.Y('MW', title='Forecasted Solar Energy (MW)'),
         tooltip=[alt.Tooltip('INTERVALSTARTTIME_GMT', title='Time'),
@@ -425,7 +426,7 @@ with col1:
         height=250
     )
 
-    wind = alt.Chart(wind_df, title='Wind Forecast').mark_bar(size=12, color='steelblue').encode(
+    wind = alt.Chart(wind_df, title='Wind Forecast').mark_bar().encode(
         x=alt.X('INTERVALSTARTTIME_GMT:T', title='Time'),
         y=alt.Y('MW', title='Forecasted Wind Energy (MW)'),
         tooltip=[alt.Tooltip('INTERVALSTARTTIME_GMT', title='Time'),
