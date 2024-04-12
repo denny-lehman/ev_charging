@@ -1,6 +1,6 @@
 services:
   app:
-    image: 241112547949.dkr.ecr.us-east-1.amazonaws.com/charge-buddy:latest
+    image: $GITHUB_OUTPUT
     network_mode: host
     deploy:
       replicas: 1
