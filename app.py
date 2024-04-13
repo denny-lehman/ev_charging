@@ -142,7 +142,23 @@ def make_recommendation(avail_df, pricing_df, solar_df, wind_df):
             return pricing
     else:
         return availability.reset_index()
-#
+
+
+def get_recommendation_chunks(recommendation):
+    if len(recommendation) == 1:
+        return recommendation
+    recommendation['time_delta'] = recommendation['datetime'].diff()
+    recommendation.loc[0, 'start'] = 1
+    for i in range(len(recommendation)-1):
+        if recommendation['time_delta'].iloc[i+1] != pd.Timedelta('1h'):
+            recommendation.loc[i, 'end'] = 1
+            recommendation.loc[i+1, 'start'] = 1
+        else:
+            recommendation.loc[i, 'end'] = 0
+            recommendation.loc[i+1, 'start'] = 0
+    recommendation.loc[len(recommendation)-1, 'end'] = 1
+
+    return recommendation
 # def try_forecast(site:str):
 # today_forecast, demand_forecast, solar_df, wind_df, wind_solar_forecast = get_forecasts(site)
 # st.session_state[f'{site}_today_forecast'] = today_forecast
@@ -375,14 +391,20 @@ with col1:
 ##########################################################################
 ## Plotting
 ##########################################################################
+
     if len(recommendation) > 0:
         min = pd.to_datetime(recommendation['datetime'].min(), format='%I: %p', utc=True)
         max = pd.to_datetime(recommendation['datetime'].max(), format='%I: %p', utc=True)
         recommendation_string = f"The recommended time to charge is between {min.date()} at {min.strftime('%I:%M %p')} and {max.date()} at {max.strftime('%I:%M %p')} based on your stated preferences"
         st.markdown(f"<p style='text-align: center; color: orange;'>{recommendation_string}</p>", unsafe_allow_html=True)
+        st.write(recommendation)
+        st.write(get_recommendation_chunks(recommendation))
     else:
         st.markdown(f"<p style='text-align: center; color: orange;'>No recommendations available based on your stated preferences</p>", unsafe_allow_html=True)
     st.write('Availability from ', start_date, ' to ', end_date)
+
+    # create a column in the X dataframe that is true if the time is in the recommendation
+    X['recommended'] = X.index.isin(recommendation['datetime'])
 
     wind_solar_forecast = wind_solar_forecast.sort_values('INTERVALSTARTTIME_GMT').loc[
         (wind_solar_forecast['INTERVALSTARTTIME_GMT'] >= start_localized) & (
@@ -393,7 +415,7 @@ with col1:
         y=alt.Y('% available:Q', title='Availability (%)'),
         tooltip=[alt.Tooltip('datetime:T', title='Time'),
                  alt.Tooltip('% available:Q', format=",.1f", title='Availability (%)')],
-        color=alt.condition(alt.expr.datum['% available'] > 90, alt.value('green'), alt.value('steelblue'))
+        color=alt.condition(alt.expr.datum['recommended'], alt.value('green'), alt.value('steelblue'))
     ).properties(
         width=800,
         height=250
@@ -440,12 +462,12 @@ with col1:
 
     if eco & cost:
         solar_chart = set_renewable_chart_legend_pos(solar_chart, 700, 690)
-        st.altair_chart(alt.vconcat(availability_chart, pricing_chart, solar_chart).resolve_scale(x='shared', y='independent'))
+        st.altair_chart(alt.vconcat(availability_chart, pricing_chart, solar_chart).resolve_scale(x='shared', y='independent'), use_container_width=True)
     elif eco:
         solar_chart = set_renewable_chart_legend_pos(solar_chart, 700, 310)
-        st.altair_chart(alt.vconcat(availability_chart, solar_chart).resolve_scale(x='shared', y='independent'))
+        st.altair_chart(alt.vconcat(availability_chart, solar_chart).resolve_scale(x='shared', y='independent'), use_container_width=True)
     elif cost:
-        st.altair_chart(alt.vconcat(availability_chart, pricing_chart).resolve_scale(x='shared', y='independent'))
+        st.altair_chart(alt.vconcat(availability_chart, pricing_chart).resolve_scale(x='shared', y='independent'), use_container_width=True)
     else:
         st.altair_chart(availability_chart)
 
