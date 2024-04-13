@@ -76,13 +76,13 @@ jobs:
         SSH_PRIVATE_KEY: ${{ secrets.CHARGEBUDDY_ACTIONRUNNER }}
         IMAGE: ${{ env.IMAGE }}
       run: |
-        scp -oStrictHostKeyChecking=no -i  ssh_private_key -r nginx ubuntu@34.231.106.254:~
-        ssh -oStrictHostKeyChecking=no -i ssh_private_key 'bash -ceux "echo $IMAGE"'
+        scp -oStrictHostKeyChecking=no -i ssh_private_key -r nginx ubuntu@34.231.106.254:~
+        ssh -oStrictHostKeyChecking=no -i ssh_private_key 'bash -eux "echo $IMAGE"'
 
     - name: Copy contents of deploy.sh and execute deploy.sh  
       env:
         SSH_PRIVATE_KEY: ${{ secrets.CHARGEBUDDY_ACTIONRUNNER }}
       run: |
         cat deploy.sh | ssh -oStrictHostKeyChecking=no -i ssh_private_key ubuntu@34.231.106.254 'cat > ./deploy.sh'
-        cat docker-compose.yml | ssh -oStrictHostKeyChecking=no -i ssh_private_key ubuntu@34.231.106.254 'bash -ceux "cat > docker-compose.yml && chmod -R 755 ./deploy.sh && ./deploy.sh"'
+        cat docker-compose.yml | ssh -oStrictHostKeyChecking=no -i ssh_private_key ubuntu@34.231.106.254 'bash -c "cat > docker-compose.yml && chmod -R 755 ./deploy.sh && ./deploy.sh"'
   
