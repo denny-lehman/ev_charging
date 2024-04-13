@@ -74,7 +74,7 @@ jobs:
     - name: Copy files over 
       env:
         SSH_PRIVATE_KEY: ${{ secrets.CHARGEBUDDY_ACTIONRUNNER }}
-        IMAGE: ${{ env.IMAGE }}
+        IMAGE: ${{ steps.build-image.outputs.IMAGE }}
       run: |
         scp -oStrictHostKeyChecking=no -i ssh_private_key -r nginx ubuntu@34.231.106.254:~
         #ssh -oStrictHostKeyChecking=no -i ssh_private_key ubuntu@34.231.106.254 'bash -eux "export $IMAGE"'
