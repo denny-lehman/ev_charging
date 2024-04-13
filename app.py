@@ -28,40 +28,14 @@ logger.addHandler(logging.StreamHandler())
 logger.setLevel(logging.INFO)
 
 print("---------------------------")
-# app_logger = logging.getLogger()
-# app_logger.addHandler(logging.StreamHandler())
-# app_logger.setLevel(logging.INFO)
-# app_logger.info("best")
 print("---------------------------")
 logger.debug('starting app')
 test_mode = True
 logger.info(f'test mode is {test_mode}')
 
-# define locations
-caltech_lat = 34.134785646454844
-caltech_lon = -118.11691382579643
-
-jpl_lat = 34.20142342818471
-jpl_lon = -118.17126565774107
-
-office_lat = 37.33680466796926
-office_lon = -121.90743423142634
-
-# create SystemDemand object
-sd = o.SystemDemand()
-
-#get today's datetime
-today = datetime.today().date()
-
-
-# @st.cache_data
-# to load CAISO data
-# def load_data():
-# df_of = pd.read_parquet('data/ACN-API/office001/').reset_index(drop=True)
-# df_of = datetime_processing(df_of)
-# df_of = userinput_processing(df_of)
-# df_of = holiday_processing(df_of)
-# return df_of
+##########################################################################
+## Establish functions
+##########################################################################
 
 @st.cache_resource
 def load_model():
@@ -69,26 +43,6 @@ def load_model():
     model_final = pickle.load(open('models/model_04_10.pkl', 'rb'))
     reg_model = pickle.load(open('models/reg_model.pkl', 'rb'))
     return model, model_final, reg_model
-
-
-@st.cache_data
-def get_weather(lat: float, long: float, test: bool = test_mode) -> pd.DataFrame:
-    logger.info(f'getting weather forecast for lat/long pair {lat}, {long}')
-    if test:
-        logger.info('In test mode: skipping api call, returning test dataframe')
-        return pd.read_csv('data/test_forecast.csv')
-
-    logger.info('calling weather forecast APIs')
-    grid_id, grid_x, grid_y = w.get_grid_points(lat, long)
-    forecast = w.get_weather_forecast(grid_id, grid_x, grid_y)
-
-    # TODO: fix this part. We need Today's forecast, so it should be returned or handled differently
-    if forecast:
-        forecast_df = w.create_forecast_df(forecast)
-        today_forecast = forecast_df.loc[forecast_df['startTime'].dt.date == today]
-    else:
-        today_forecast = None
-    return forecast_df
 
 
 def get_tou_pricing(site, start, end, tz='UTC-07:00'):
@@ -123,15 +77,17 @@ def get_tou_pricing(site, start, end, tz='UTC-07:00'):
 def get_forecasts(site: str) -> Tuple[pd.DataFrame]:
     lat, long = site2latlon[site]
 
-    today_forecast = get_weather(lat, long, test=False)
+    # returns the "today_forecast" for the weather in the dashboard, the "weather_df" for the model inference
+    today_forecast, weather_df = get_processed_hourly_7day_weather(lat, long, test_mode=False)
 
+    # this demand is for all sites, all time
     demand_forecast = sd.get_demand_forecast(range_start, range_end)
     wind_solar_forecast = sd.get_wind_and_solar_forecast(range_start, range_end)
     wind_solar_forecast['INTERVALSTARTTIME_GMT'] = pd.to_datetime(wind_solar_forecast['INTERVALSTARTTIME_GMT'],
                                                                   utc=True)
     solar_df = wind_solar_forecast[wind_solar_forecast['RENEWABLE_TYPE'] == 'Solar']
     wind_df = wind_solar_forecast[wind_solar_forecast['RENEWABLE_TYPE'] == 'Wind']
-    return today_forecast, demand_forecast, solar_df, wind_df, wind_solar_forecast
+    return today_forecast, weather_df,  demand_forecast, solar_df, wind_df, wind_solar_forecast
 
 
 def set_renewable_chart_legend_pos(chart, x, y):
@@ -195,11 +151,28 @@ def make_recommendation(avail_df, pricing_df, solar_df, wind_df):
 # st.session_state[f'{site}_wind_df'] = wind_df
 # st.session_state[f'{site}_wind_solar_forecast'] = wind_solar_forecast
 
+##########################################################################
+## Initialize variables
+##########################################################################
+# define locations
+caltech_lat = 34.134785646454844
+caltech_lon = -118.11691382579643
+
+jpl_lat = 34.20142342818471
+jpl_lon = -118.17126565774107
+
+office_lat = 37.33680466796926
+office_lon = -121.90743423142634
+
+# create SystemDemand object
+sd = o.SystemDemand()
+
+#get today's datetime
+today = datetime.today().date()
 
 sites = ['Office001', 'Caltech', 'JPL']
 site_ids = [2, 1, 19]
 site2id = {k: v for (k, v) in zip(sites, site_ids)}
-#Why are we duplicating this when it is on line
 site2latlon = {'Caltech': (34.134785646454844, -118.11691382579643),
                'Office001': (37.33680466796926, -121.90743423142634),
                'JPL': (34.20142342818471, -118.17126565774107)}
@@ -209,6 +182,11 @@ logger.info(f'loaded site lat and long coordinates: {site2latlon.items()}')
 site2tac = {2: 'PGE-TAC', 1: 'SCE-TAC', 19: 'SCE-TAC', }
 today_forecast, demand_forecast, solar_df, wind_df, pricing, wind_solar_forecast = None, None, None, None, None, None
 logger.info('initialized site variables and maps')
+
+
+##########################################################################
+## HTML layout
+##########################################################################
 
 st.set_page_config(page_title='Charge Buddy', page_icon=':zap:', layout='wide', initial_sidebar_state='auto')
 
@@ -240,13 +218,13 @@ eco = st.sidebar.checkbox('Eco-Friendly', key='eco')
 cost = st.sidebar.checkbox('Low Cost', key='cost')
 logger.info(f'eco selected: {st.session_state["eco"]}\nlow cost selected: {st.session_state["cost"]}')
 
-lat, long = 0, 0
-lat, long = site2latlon.get(site)
-logger.info(f'lat lon selected: {lat}, {long}')
-
-forecast_df = get_weather(lat, long, test=False)
-logger.info(f'todays forecast: {forecast_df.head()}')
-forecast_df.to_csv('data/test_forecast.csv')
+# lat, long = 0, 0
+# lat, long = site2latlon.get(site)
+# logger.info(f'lat lon selected: {lat}, {long}')
+#
+# forecast_df = get_weather(lat, long, test=False)
+# logger.info(f'todays forecast: {forecast_df.head()}')
+# forecast_df.to_csv('data/test_forecast.csv')
 
 st.sidebar.subheader('Select date')
 start_date = st.sidebar.date_input("Start date", value=today, min_value=today, max_value=today + pd.Timedelta('6d'),
@@ -269,6 +247,12 @@ range_end_ls = [int(x) for x in str(today + pd.Timedelta('7d')).split('-')]
 range_start = datetime(range_start_ls[0], range_start_ls[1], range_start_ls[2])
 range_end = datetime(range_end_ls[0], range_end_ls[1], range_end_ls[2])
 
+#st.sidebar.info('EDIT ME: This app is a simple example of '
+#                 'using Streamlit to create a financial data web app.\n'
+#                 '\nIt is maintained by [Paduel]('
+#                 'https://twitter.com/paduel_py).\n\n'
+#                 'Check the code at https://github.com/paduel/streamlit_finance_chart')
+
 with st.sidebar:
     loc = streamlit_geolocation()
     if any(list(loc.values())):
@@ -280,14 +264,13 @@ with st.sidebar:
 
 # TODO: is this a switch?
 
+# pull data here
 st.session_state.key = 0
-today_forecast, demand_forecast, solar_df, wind_df, wind_solar_forecast = get_forecasts(st.session_state.site)
+##########################################################################
+## Fetching Data
+##########################################################################
 
-#st.sidebar.info('EDIT ME: This app is a simple example of '
-#                 'using Streamlit to create a financial data web app.\n'
-#                 '\nIt is maintained by [Paduel]('
-#                 'https://twitter.com/paduel_py).\n\n'
-#                 'Check the code at https://github.com/paduel/streamlit_finance_chart')
+today_forecast, future_weather_df, demand_forecast, solar_df, wind_df, wind_solar_forecast = get_forecasts(st.session_state.site)
 
 pricing = get_tou_pricing(site, start_localized, end_localized)
 wind_solar_forecast = wind_solar_forecast.sort_values('INTERVALSTARTTIME_GMT').loc[
@@ -303,35 +286,40 @@ col1.column_config = {'justify': 'center'}
 with col1:
     st.markdown(f"<h2 style='text-align: center; color: white;'>Availability at {site} </h2>",
                 unsafe_allow_html=True)
-    model, model_final, reg_model = load_model()
-
-    # get time, demand, and weather features
-    # combine the 3 feature sets
-    # perform inference
-
-    logger.info(f'start date type {type(start_localized)} and value is {start_localized}')
-    time_df = make_time_features(start_date, end_date)
-    time_df['site'] = st.session_state['site']
-
-    assert {'site', 'index'}.issubset(time_df.reset_index().columns)
-
-    future_weather = get_processed_hourly_7day_weather(*site2latlon[st.session_state['site']])
     m = folium.Map(location=[*site2latlon[st.session_state['site']]], zoom_start=5)
     folium.Marker(
         location=[*site2latlon[st.session_state['site']]],
         popup=f"{st.session_state['site']}",
         icon=folium.Icon(color="green")
     ).add_to(m)
-    future_weather['site'] = st.session_state['site']
 
-    assert {'site', 'time'}.issubset(future_weather.reset_index().columns)
+##########################################################################
+## Model Inference
+##########################################################################
+    # get time, demand, and weather features
+    # combine the 3 feature sets
+    # perform inference
+
+    model, model_final, reg_model = load_model()
+
+    logger.info(f'start date type {type(start_localized)} and value is {start_localized}')
+    time_df = make_time_features(start_date, end_date)
+    time_df['site'] = st.session_state['site']
+    assert {'site', 'index'}.issubset(time_df.reset_index().columns)
+
+    # future weather already loaded, add current site
+    future_weather_df['site'] = st.session_state['site']
+    assert {'site', 'time_utc'}.issubset(future_weather_df.reset_index().columns), f" site and time are not in {future_weather_df.reset_index().columns}"
 
     #demand_forecast = st.session_state[f'{site}_demand_forecast']
     logger.info(f'demand forecast loaded with shape {demand_forecast.shape} and columns: {demand_forecast.columns}')
     demand_forecast['datetime'] = pd.to_datetime(demand_forecast['OPR_DT']) + pd.to_timedelta(demand_forecast['OPR_HR'],
                                                                                               unit='h')
+    # filter for location, via TAC
     demand = demand_forecast.loc[
              demand_forecast['TAC_AREA_NAME'] == site2tac[site2id[site]], :].set_index('datetime')
+    # filter for only 7 day ahead
+    demand = demand[demand['MARKET_RUN_ID'] == '7DA']
 
     demand['site'] = st.session_state['site']
     demand = demand.rename(columns={'MW': 'actual_demand_MW'}).sort_index()
@@ -346,39 +334,47 @@ with col1:
                 'temperature_degC', 'dewpoint_degC', 'relative_humidity_%',
                 'wind_speed_mph', 'site']
     X = pd.DataFrame({}, columns=features)
+
     try:
         X = pd.merge(time_df.reset_index(), demand.reset_index(), how='left', left_on=['index', 'site'],
                      right_on=['datetime', 'site'])
     except:
         assert 1 == 0, 'failed to merge time_df and demand'
     try:
-        X = pd.merge(X, future_weather.reset_index(), how='left', left_on=['index', 'site'],
-                     right_on=['time', 'site'])
+        X = pd.merge(X, future_weather_df.reset_index(), how='left', left_on=['index', 'site'],
+                     right_on=['time_utc', 'site'])
     except:
         logger.info('failed to merge time, weather, and demand features')
-    X.index = X['datetime']
+
+    # set the datetime to the index
+    X.index = X['index_x'].rename('datetime')
+
+    # the demand is always missing midnight for some reason, so copy 1AM and imput it
+    X.loc[X.index[0], 'actual_demand_MW'] = X.loc[X.index[1], 'actual_demand_MW']
+
+    # keep only the feature columns desired for modeling
     X = X[features]
+    logger.info(f"the X values for the model have features {X.columns}")
+    logger.info(X.head(2))
+
+    # for testing, uncomment these
+    # X.to_csv('test_X.csv')
+    # time_df.to_csv('test_time.csv')
+    # demand.to_csv('test_demand.csv')
+    # future_weather_df.to_csv('test_future_weather.csv', index_label='index')
     prediction = pd.Series(model_final.predict(X) * 100, index=X.index, name='% available')
-    # X = pd.DataFrame(index=pd.date_range(start_date, end_date, inclusive='both', freq='h', tz=0),
-    #                      columns=['dow', 'hour', 'month', 'siteID'])
-    #
-    # X['dow'] = X.index.dayofweek
-    # X['hour'] = X.index.hour
-    # X['month'] = X.index.month
-    # X['connectionTime'] = X.index
-    # X = holiday_processing(X).drop(columns=['connectionTime'])
-    # X['siteID'] = site2id[site]
-    # prediction = pd.Series(reg_model.predict(X) * 100, index=X.index, name='% available')
 
     # regression messes up sometimes, bound the values between [0, 100]
     prediction[prediction > 100] = 100
     prediction[prediction < 0] = 0
 
     X['% available'] = prediction
-    X = X.groupby(X.index).mean()
 
     recommendation = make_recommendation(X, pricing, solar_df, wind_df)
 
+##########################################################################
+## Plotting
+##########################################################################
     if len(recommendation) > 0:
         min = pd.to_datetime(recommendation['datetime'].min(), format='%I: %p', utc=True)
         max = pd.to_datetime(recommendation['datetime'].max(), format='%I: %p', utc=True)
@@ -470,6 +466,9 @@ with col1:
     st.text(f'{availability_txt}. Average availability: ' + str(avg_availability) + '%')
     st.text('More locations coming soon!')
 
+##########################################################################
+## Weather Forecast
+##########################################################################
 col2.column_config = {'justify': 'right'}
 with col2:
     st.markdown(
@@ -477,7 +476,9 @@ with col2:
         unsafe_allow_html=True)
     col2_1, col2_2 = st.columns([0.5, 0.5])
     if today_forecast is not None:
-        col2_1.metric('Temperature (F)', today_forecast['temperature'].iloc[0])
+        logger.info(today_forecast.columns)
+        assert 'temperature_degF' in today_forecast.columns, f"no temperature in {today_forecast.columns}"
+        col2_1.metric('Temperature (F)', today_forecast['temperature_degF'].iloc[0])
         col2_2.image(today_forecast['icon'].iloc[0], use_column_width=False)
         col2_1.write(today_forecast['detailedForecast'].iloc[0])
     else:
