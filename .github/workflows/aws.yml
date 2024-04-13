@@ -79,7 +79,6 @@ jobs:
         ssh -oStrictHostKeyChecking=no -i ssh_private_key ubuntu@34.231.106.254 'bash -c "aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin 241112547949.dkr.ecr.us-east-1.amazonaws.com "'
         scp -oStrictHostKeyChecking=no -i  ssh_private_key -r nginx ubuntu@34.231.106.254:~
         ssh -oStrictHostKeyChecking=no -i ssh_private_key 'bash -c echo "$IMAGE"'
-        cat docker-compose.yml | ssh -oStrictHostKeyChecking=no -i ssh_private_key ubuntu@34.231.106.254 'bash -c "cat > docker-compose.yml  "'
-        ssh -oStrictHostKeyChecking=no -i ssh_private_key ubuntu@34.231.106.254 'bash -c "docker-compose build --build-arg IMAGE_TAG=$IMAGE"'
-        ssh -oStrictHostKeyChecking=no -i ssh_private_key ubuntu@34.231.106.254 'bash -c "docker-compose up -d"'
+        cat docker-compose.yml | ssh -oStrictHostKeyChecking=no -i ssh_private_key ubuntu@34.231.106.254 'bash -c "cat > docker-compose.yml "'
+        ssh -oStrictHostKeyChecking=no -i ssh_private_key ubuntu@34.231.106.254 'bash -c "docker-compose up "'
   
