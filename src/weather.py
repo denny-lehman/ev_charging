@@ -191,7 +191,7 @@ def get_processed_hourly_7day_weather(latitude:float, longitude:float, test_mode
         test_mode: bool - if test mode is true, pull stored data from disk, otherwise call the apis
     returns
         today_weather_df: pd.DataFrame - the forecast used in the dashboard
-        weather_df: pd.DataFrame - the processed dataframe of the hourly 7day weather for that site
+        today_plus_7day_weather_df: pd.DataFrame - the processed dataframe of the hourly 7day weather for that site
     """
     logger.info(f'getting weather forecast for lat/long pair {latitude}, {longitude}')
     if test_mode:
@@ -200,16 +200,13 @@ def get_processed_hourly_7day_weather(latitude:float, longitude:float, test_mode
     today_weather_json = get_weather_forecast(office, grid_x, grid_y)
     today_weather_df = create_forecast_df(today_weather_json)
     today_weather_df = convert_today_weather_to_hourly(today_weather_df)
-    # today_hourly_weather = create_hourly_forecast_df(today_weather_df)
     logger.info(f'todays weather contains times starting at {today_weather_df.index.min()} through {today_weather_df.index.max()}')
-    # today_hourly_weather = convert_weather_values(today_weather_df)
 
     weather_json = get_hourly_weather_forecast(office, grid_x, grid_y)
-
     weather_df = create_hourly_forecast_df(weather_json)
     # assert set(today_weather_df.columns).issubset(weather_df.columns), 'columns in today forecast and 7 day forecast dont match'
-    weather_df = pd.concat(
+    today_plus_7day_weather_df = pd.concat(
         [today_weather_df[today_weather_df.index < weather_df.index.min()] # collect all times less than the 7 day forecast
             , weather_df], axis=0).sort_index()
-    return today_weather_df, weather_df
+    return today_weather_df, today_plus_7day_weather_df
 
