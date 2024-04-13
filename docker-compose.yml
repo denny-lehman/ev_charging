@@ -1,7 +1,6 @@
 services:
   app:
-    image: &image_var
-      ${IMAGE_TAG}
+    image: "$IMAGE"
     network_mode: host
     deploy:
       replicas: 1
