@@ -20,7 +20,7 @@ import src.weather as w
 import src.oasis as o
 from src.weather import get_processed_hourly_7day_weather
 import logging
-
+import streamlit_scrollable_textbox as stx
 from streamlit_geolocation import streamlit_geolocation
 
 logger = logging.getLogger(__name__)
@@ -158,7 +158,7 @@ def get_recommendation_chunks(recommendation):
             recommendation.loc[i, 'end'] = 0
             recommendation.loc[i+1, 'start'] = 0
     recommendation.loc[len(recommendation)-1, 'end'] = 1
-
+    recommendation = recommendation.loc[(recommendation['start'] == 1) | (recommendation['end'] == 1), :]
 
     recommendation_start_end = []
     for i in range(len(recommendation)):
@@ -168,6 +168,7 @@ def get_recommendation_chunks(recommendation):
             start = recommendation.loc[i, 'datetime']
             while recommendation.loc[i, 'end'] == 0:
                 i += 1
+                continue
             if recommendation.loc[i, 'end'] == 1:
                 end = recommendation.loc[i, 'datetime']
                 recommendation_start_end.append((start, end))
@@ -412,18 +413,17 @@ with col1:
 ##########################################################################
 
     if len(recommendation) > 0:
-        min = pd.to_datetime(recommendation['datetime'].min(), format='%I: %p', utc=True)
-        max = pd.to_datetime(recommendation['datetime'].max(), format='%I: %p', utc=True)
-        recommendation_string = f"The recommended time to charge is between {min.date()} at {min.strftime('%I:%M %p')} and {max.date()} at {max.strftime('%I:%M %p')} based on your stated preferences"
-        #st.markdown(f"<p style='text-align: center; color: orange;'>{recommendation_string}</p>", unsafe_allow_html=True)
         recommendation_chunks = get_recommendation_chunks(recommendation)
-        #st.write(get_recommendation_chunks(recommendation))
-        st.markdown("<p style='text-align: left; color: orange;'>Based on selected preferences, the recommended time(s) to charge are: </p>", unsafe_allow_html=True)
+        rec_string_header = "Based on selected preferences, the recommended time(s) to charge are: "
+        st.markdown(
+            f"<p style='text-align: left; color: orange;'>{rec_string_header}</p>",
+            unsafe_allow_html=True)
+        rec_string = ''
         for rec in recommendation_chunks:
-            rec_string = f"{rec[0].date()} from {rec[0].strftime('%I:%M %p')} to {rec[1].strftime('%I:%M %p')}"
-            st.markdown(f"<p style='text-align: left; color: orange;'>{rec_string}</p>", unsafe_allow_html=True)
+            rec_string += f"{rec[0].date()} from {rec[0].strftime('%I:%M %p')} to {rec[1].strftime('%I:%M %p')}\n"
+        stx.scrollableTextbox(rec_string, height=100)
     else:
-        st.markdown(f"<p style='text-align: center; color: orange;'>No recommendations available based on your stated preferences</p>", unsafe_allow_html=True)
+        st.markdown(f"<p style='text-align: left; color: orange;'>No recommendations available based on your stated preferences</p>", unsafe_allow_html=True)
     st.write('Availability from ', start_date, ' to ', end_date)
 
     # create a column in the X dataframe that is true if the time is in the recommendation
