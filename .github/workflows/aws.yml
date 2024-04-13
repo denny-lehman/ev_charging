@@ -74,7 +74,6 @@ jobs:
     - name: Deploy
       env:
         SSH_PRIVATE_KEY: ${{ secrets.CHARGEBUDDY_ACTIONRUNNER }}
-      with:
         IMAGE: ${{ env.IMAGE }}
       run: |
         ssh -oStrictHostKeyChecking=no -i ssh_private_key ubuntu@34.231.106.254 'bash -c "aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin 241112547949.dkr.ecr.us-east-1.amazonaws.com "'
