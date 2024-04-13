@@ -145,6 +145,7 @@ def make_recommendation(avail_df, pricing_df, solar_df, wind_df):
 
 
 def get_recommendation_chunks(recommendation):
+    recommendation = recommendation.copy()
     if len(recommendation) == 1:
         return recommendation
     recommendation['time_delta'] = recommendation['datetime'].diff()
@@ -158,7 +159,24 @@ def get_recommendation_chunks(recommendation):
             recommendation.loc[i+1, 'start'] = 0
     recommendation.loc[len(recommendation)-1, 'end'] = 1
 
-    return recommendation
+
+    recommendation_start_end = []
+    for i in range(len(recommendation)):
+        if (recommendation.loc[i, 'start'] == 1) & (recommendation.loc[i, 'end'] == 1):
+            recommendation_start_end.append((recommendation.loc[i, 'datetime'], recommendation.loc[i, 'datetime'] + pd.Timedelta('1h')))
+        elif recommendation.loc[i, 'start'] == 1:
+            start = recommendation.loc[i, 'datetime']
+            while recommendation.loc[i, 'end'] == 0:
+                i += 1
+            if recommendation.loc[i, 'end'] == 1:
+                end = recommendation.loc[i, 'datetime']
+                recommendation_start_end.append((start, end))
+    final_list = []
+    for i in recommendation_start_end:
+        if i not in final_list:
+            final_list.append(i)
+
+    return final_list
 # def try_forecast(site:str):
 # today_forecast, demand_forecast, solar_df, wind_df, wind_solar_forecast = get_forecasts(site)
 # st.session_state[f'{site}_today_forecast'] = today_forecast
@@ -300,6 +318,7 @@ wind_df = wind_df.sort_values('INTERVALSTARTTIME_GMT').loc[
 # populate main column with availability chart
 col1.column_config = {'justify': 'center'}
 with col1:
+
     st.markdown(f"<h2 style='text-align: center; color: white;'>Availability at {site} </h2>",
                 unsafe_allow_html=True)
     m = folium.Map(location=[*site2latlon[st.session_state['site']]], zoom_start=5)
@@ -396,9 +415,13 @@ with col1:
         min = pd.to_datetime(recommendation['datetime'].min(), format='%I: %p', utc=True)
         max = pd.to_datetime(recommendation['datetime'].max(), format='%I: %p', utc=True)
         recommendation_string = f"The recommended time to charge is between {min.date()} at {min.strftime('%I:%M %p')} and {max.date()} at {max.strftime('%I:%M %p')} based on your stated preferences"
-        st.markdown(f"<p style='text-align: center; color: orange;'>{recommendation_string}</p>", unsafe_allow_html=True)
-        st.write(recommendation)
-        st.write(get_recommendation_chunks(recommendation))
+        #st.markdown(f"<p style='text-align: center; color: orange;'>{recommendation_string}</p>", unsafe_allow_html=True)
+        recommendation_chunks = get_recommendation_chunks(recommendation)
+        #st.write(get_recommendation_chunks(recommendation))
+        st.markdown("<p style='text-align: left; color: orange;'>Based on selected preferences, the recommended time(s) to charge are: </p>", unsafe_allow_html=True)
+        for rec in recommendation_chunks:
+            rec_string = f"{rec[0].date()} from {rec[0].strftime('%I:%M %p')} to {rec[1].strftime('%I:%M %p')}"
+            st.markdown(f"<p style='text-align: left; color: orange;'>{rec_string}</p>", unsafe_allow_html=True)
     else:
         st.markdown(f"<p style='text-align: center; color: orange;'>No recommendations available based on your stated preferences</p>", unsafe_allow_html=True)
     st.write('Availability from ', start_date, ' to ', end_date)
