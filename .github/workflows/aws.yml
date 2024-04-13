@@ -7,7 +7,7 @@
 #
 
 # 2. SSH's into EC2 instance to call docker containers from ECR 
-#
+
 
 
 name: Deploy to Amazon ECR and SSH into EC2 Instance for Deployment
@@ -77,7 +77,7 @@ jobs:
         IMAGE: ${{ env.IMAGE }}
       run: |
         scp -oStrictHostKeyChecking=no -i ssh_private_key -r nginx ubuntu@34.231.106.254:~
-        ssh -oStrictHostKeyChecking=no -i ssh_private_key 'bash -eux "echo $IMAGE"'
+        ssh -oStrictHostKeyChecking=no -i ssh_private_key ubuntu@34.231.106.254 'bash -eux "echo $IMAGE"'
 
     - name: Copy contents of deploy.sh and execute deploy.sh  
       env:
