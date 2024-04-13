@@ -77,7 +77,8 @@ jobs:
         IMAGE: ${{ steps.build-image.outputs.IMAGE }}
       run: |
         scp -oStrictHostKeyChecking=no -i ssh_private_key -r nginx ubuntu@34.231.106.254:~
-        echo "$IMAGE" | ssh -oStrictHostKeyChecking=no -i ssh_private_key ubuntu@34.231.106.254 'cat > "$IMAGE"'
+        echo "IMAGE=$IMAGE" > .env 
+        scp -oStrictHostKeyChecking=no -i .env ubuntu@34.231.106.254:~
 
     - name: Copy contents of deploy.sh and execute deploy.sh  
       env:
