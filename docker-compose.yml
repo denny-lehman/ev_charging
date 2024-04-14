@@ -1,6 +1,8 @@
 services:
   app:
-    image: "$IMAGE"
+    env_file:
+      - .env
+    image: $IMAGE
     network_mode: host
     deploy:
       replicas: 1
@@ -18,3 +20,4 @@ services:
       - "80:80"
     depends_on:
       - app
+
