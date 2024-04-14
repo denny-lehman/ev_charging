@@ -1123,6 +1123,20 @@ files = [
 streamlit = ">=1.0.0"
 
 [[package]]
+name = "streamlit-scrollable-textbox"
+version = "0.0.3"
+description = "Scrollable textbox for Streamlit."
+optional = false
+python-versions = ">=3.6"
+files = [
+    {file = "streamlit_scrollable_textbox-0.0.3-py3-none-any.whl", hash = "sha256:e48d57f5477491b58afde2cd6a81d6c98bdb8063570fc2467958ae286d883b5c"},
+    {file = "streamlit_scrollable_textbox-0.0.3.tar.gz", hash = "sha256:f32c22fb28a16caa4f952f4ce6bc8ab8dc79c5adf36b188ac8938bc458905fbc"},
+]
+
+[package.dependencies]
+streamlit = ">=0.63"
+
+[[package]]
 name = "tenacity"
 version = "8.2.3"
 description = "Retry code until it succeeds"
@@ -1310,4 +1324,4 @@ files = [
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.10"
-content-hash = "59faa32ba9927e2532f70562dd4b8411f195bfd079236dd05c486579259dd867"
+content-hash = "3a5a4e8423d909d00f46145868fb624c886f41fe48f4f9f14f7e537171238cd2"

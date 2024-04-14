@@ -17,6 +17,7 @@ scikit-learn = "^1.4.2"
 streamlit-geolocation = "^0.0.10"
 folium = "^0.16.0"
 streamlit-folium = "^0.19.0"
+streamlit-scrollable-textbox = "^0.0.3"
 
 [build-system]
 requires = ["poetry-core"]
