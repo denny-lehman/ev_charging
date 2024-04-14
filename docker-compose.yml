@@ -5,7 +5,12 @@ services:
     image: $IMAGE
     deploy:
       replicas: 1
+    ports:
+      - "8501:8501"
     command: streamlit run app.py --server.port=8501 --server.headless=true --server.enableCORS=false --server.enableXsrfProtection=false --server.enableWebsocketCompression=false
+    networks:
+      - proxy_network
+
 
   nginx:
     container_name: nginx
@@ -17,4 +22,10 @@ services:
       - "80:80"
     depends_on:
       - app
+    networks:
+      - proxy_network
 
+#Docker Networks
+networks:
+  proxy_network:
+    driver: bridge
