@@ -144,11 +144,13 @@ def make_recommendation(avail_df, pricing_df, solar_df, wind_df):
         return availability.reset_index()
 
 
-def get_recommendation_chunks(recommendation):
-    recommendation = recommendation.copy()
+def get_recommendation_chunks(og_recommendation):
+    logger.info(f'getting recommendation chunks {type(og_recommendation)}, shape : {og_recommendation.shape}, columns: {og_recommendation.columns}')
+    og_recommendation.to_csv('test_recommendation.csv')
+    recommendation = og_recommendation.copy()
     if len(recommendation) == 1:
         return recommendation
-    recommendation['time_delta'] = recommendation['datetime'].diff()
+    recommendation['time_delta'] = pd.to_datetime(recommendation['datetime']).diff()
     recommendation.loc[0, 'start'] = 1
     for i in range(len(recommendation)-1):
         if recommendation['time_delta'].iloc[i+1] != pd.Timedelta('1h'):
@@ -158,20 +160,20 @@ def get_recommendation_chunks(recommendation):
             recommendation.loc[i, 'end'] = 0
             recommendation.loc[i+1, 'start'] = 0
     recommendation.loc[len(recommendation)-1, 'end'] = 1
-    recommendation = recommendation.loc[(recommendation['start'] == 1) | (recommendation['end'] == 1), :]
+    small_recommendation = recommendation.loc[(recommendation['start'] == 1) | (recommendation['end'] == 1), :]
 
     recommendation_start_end = []
-    for i in range(len(recommendation)):
-        if (recommendation.loc[i, 'start'] == 1) & (recommendation.loc[i, 'end'] == 1):
-            recommendation_start_end.append((recommendation.loc[i, 'datetime'], recommendation.loc[i, 'datetime'] + pd.Timedelta('1h')))
-        elif recommendation.loc[i, 'start'] == 1:
-            start = recommendation.loc[i, 'datetime']
-            while recommendation.loc[i, 'end'] == 0:
-                i += 1
-                continue
-            if recommendation.loc[i, 'end'] == 1:
-                end = recommendation.loc[i, 'datetime']
-                recommendation_start_end.append((start, end))
+    for i in list(small_recommendation.index):
+        if (small_recommendation.loc[i, 'start'] == 1) & (small_recommendation.loc[i, 'end'] == 1):
+            recommendation_start_end.append(
+                (small_recommendation.loc[i, 'datetime'], small_recommendation.loc[i, 'datetime'] + pd.Timedelta('1h')))
+        elif small_recommendation.loc[i, 'start'] == 1:
+            start = small_recommendation.loc[i, 'datetime']
+            print(small_recommendation.loc[:, ['start', 'end']])
+            for j in list(small_recommendation.index):
+                if small_recommendation.loc[j, 'end'] == 1:
+                    end = small_recommendation.loc[j, 'datetime']
+                    recommendation_start_end.append((start, end))
     final_list = []
     for i in recommendation_start_end:
         if i not in final_list:
