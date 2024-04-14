@@ -3,10 +3,9 @@ services:
     env_file:
       - .env
     image: $IMAGE
-    network_mode: host
     deploy:
       replicas: 1
-    command: streamlit run app.py --server.port=8501 --server.headless=true --server.enableCORS=false --server.enableWebsocketCompression=false
+    command: streamlit run app.py --server.port=8501 --server.headless=true --server.enableCORS=false --server.enableXsrfProtection=false --server.enableWebsocketCompression=false
 
   nginx:
     container_name: nginx
