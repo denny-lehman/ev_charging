@@ -442,7 +442,7 @@ with col1:
                  alt.Tooltip('% available:Q', format=",.1f", title='Availability (%)')],
         color=alt.condition(alt.expr.datum['recommended'], alt.value('green'), alt.value('steelblue'))
     ).properties(
-        width='container',
+        width=800,
         height=250
     ).interactive()
 
