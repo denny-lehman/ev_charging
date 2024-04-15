@@ -390,10 +390,10 @@ with col1:
     logger.info(X.head(2))
 
     # for testing, uncomment these
-    # X.to_csv('test_X.csv')
-    # time_df.to_csv('test_time.csv')
-    # demand.to_csv('test_demand.csv')
-    # future_weather_df.to_csv('test_future_weather.csv', index_label='index')
+    #X.to_csv('test/test_X.csv')
+    #time_df.to_csv('test/test_time.csv')
+    #demand.to_csv('test/test_demand.csv')
+    #future_weather_df.to_csv('test/test_future_weather.csv', index_label='index')
     prediction = pd.Series(model_final.predict(X) * 100, index=X.index, name='% available')
 
     # regression messes up sometimes, bound the values between [0, 100]
@@ -402,8 +402,16 @@ with col1:
 
     X['% available'] = prediction
 
-    recommendation = make_recommendation(X, pricing, solar_df, wind_df)
+    wind_solar_forecast = wind_solar_forecast.sort_values('INTERVALSTARTTIME_GMT').loc[
+        (wind_solar_forecast['INTERVALSTARTTIME_GMT'] >= start_localized) & (
+                    wind_solar_forecast['INTERVALSTARTTIME_GMT'] <= end_localized)]
+    solar_df = solar_df.sort_values('INTERVALSTARTTIME_GMT').loc[
+        (solar_df['INTERVALSTARTTIME_GMT'] >= X.index.min()) & (solar_df['INTERVALSTARTTIME_GMT'] <= X.index.max())]
+    wind_df = wind_df.sort_values('INTERVALSTARTTIME_GMT').loc[
+        (wind_df['INTERVALSTARTTIME_GMT'] >= X.index.min()) & (wind_df['INTERVALSTARTTIME_GMT'] <= X.index.max())]
 
+    recommendation = make_recommendation(X, pricing, solar_df, wind_df)
+    recommendation.to_csv('test/test_recommendation.csv')
 ##########################################################################
 ## Plotting
 ##########################################################################
@@ -419,18 +427,11 @@ with col1:
         stx.scrollableTextbox(rec_string, height=100)
     else:
         st.markdown(f"<p style='text-align: left; color: orange;'>No recommendations available based on your stated preferences</p>", unsafe_allow_html=True)
-    st.write('Availability from ', start_date, ' to ', end_date)
+    st.write('Availability from ', start_date, ' to ', end_date, '- Recommended times are highlighted in green.')
 
     # create a column in the X dataframe that is true if the time is in the recommendation
     X['recommended'] = X.index.isin(recommendation['datetime'])
 
-    wind_solar_forecast = wind_solar_forecast.sort_values('INTERVALSTARTTIME_GMT').loc[
-        (wind_solar_forecast['INTERVALSTARTTIME_GMT'] >= start_localized) & (
-                    wind_solar_forecast['INTERVALSTARTTIME_GMT'] <= end_localized)]
-    solar_df = solar_df.sort_values('INTERVALSTARTTIME_GMT').loc[
-        (solar_df['INTERVALSTARTTIME_GMT'] >= X.index.min()) & (solar_df['INTERVALSTARTTIME_GMT'] <= X.index.max())]
-    wind_df = wind_df.sort_values('INTERVALSTARTTIME_GMT').loc[
-        (wind_df['INTERVALSTARTTIME_GMT'] >= X.index.min()) & (wind_df['INTERVALSTARTTIME_GMT'] <= X.index.max())]
 
     availability_chart = alt.Chart(X.reset_index()).mark_bar().encode(
         x=alt.X('datetime:T', title='Time'),
