@@ -47,6 +47,7 @@ def load_model():
 
 def get_tou_pricing(site, start, end, tz='UTC-07:00'):
     pricing = pd.DataFrame(index=pd.date_range(start, end, inclusive='both', freq='h'), columns=['price'])
+    pricing.index = pricing.index.tz_convert(tz)
     if site == 'Office001':
         for i in list(pricing.index):
             # super off-peak
@@ -69,6 +70,7 @@ def get_tou_pricing(site, start, end, tz='UTC-07:00'):
             # off-peak
             else:
                 pricing.loc[i, 'price'] = 0.14
+
     return pricing
 
 
@@ -413,7 +415,6 @@ with col1:
 ##########################################################################
 ## Plotting
 ##########################################################################
-
     if len(recommendation) > 0:
         recommendation_chunks = get_recommendation_chunks(recommendation)
         rec_string_header = "Based on selected preferences, the recommended time(s) to charge are: "
