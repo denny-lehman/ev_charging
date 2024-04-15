@@ -310,13 +310,7 @@ st.session_state.key = 0
 ##########################################################################
 
 today_forecast, future_weather_df, demand_forecast, solar_df, wind_df, wind_solar_forecast = get_forecasts(st.session_state.site)
-
 pricing = get_tou_pricing(site, s, e)
-
-solar_df = solar_df.sort_values('INTERVALSTARTTIME_GMT').loc[
-    (solar_df['INTERVALSTARTTIME_GMT'] >= start_localized) & (solar_df['INTERVALSTARTTIME_GMT'] <= end_localized)]
-wind_df = wind_df.sort_values('INTERVALSTARTTIME_GMT').loc[
-    (wind_df['INTERVALSTARTTIME_GMT'] >= start_localized) & (wind_df['INTERVALSTARTTIME_GMT'] <= end_localized)]
 
 # populate main column with availability chart
 col1.column_config = {'justify': 'center'}
@@ -433,6 +427,10 @@ with col1:
     wind_solar_forecast = wind_solar_forecast.sort_values('INTERVALSTARTTIME_GMT').loc[
         (wind_solar_forecast['INTERVALSTARTTIME_GMT'] >= start_localized) & (
                     wind_solar_forecast['INTERVALSTARTTIME_GMT'] <= end_localized)]
+    solar_df = solar_df.sort_values('INTERVALSTARTTIME_GMT').loc[
+        (solar_df['INTERVALSTARTTIME_GMT'] >= X.index.min()) & (solar_df['INTERVALSTARTTIME_GMT'] <= X.index.max())]
+    wind_df = wind_df.sort_values('INTERVALSTARTTIME_GMT').loc[
+        (wind_df['INTERVALSTARTTIME_GMT'] >= X.index.min()) & (wind_df['INTERVALSTARTTIME_GMT'] <= X.index.max())]
 
     availability_chart = alt.Chart(X.reset_index()).mark_bar().encode(
         x=alt.X('datetime:T', title='Time'),
