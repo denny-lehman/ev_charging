@@ -47,7 +47,7 @@ def load_model():
 
 def get_tou_pricing(site, start, end, tz='UTC-07:00'):
     pricing = pd.DataFrame(index=pd.date_range(start, end, inclusive='both', freq='h'), columns=['price'])
-    pricing.index = pricing.index.tz_convert(tz)
+    pricing.index = pricing.index.tz_localize(tz)
     if site == 'Office001':
         for i in list(pricing.index):
             # super off-peak
@@ -85,8 +85,7 @@ def get_forecasts(site: str) -> Tuple[pd.DataFrame]:
     # this demand is for all sites, all time
     demand_forecast = sd.get_demand_forecast(range_start, range_end)
     wind_solar_forecast = sd.get_wind_and_solar_forecast(range_start, range_end)
-    wind_solar_forecast['INTERVALSTARTTIME_GMT'] = pd.to_datetime(wind_solar_forecast['INTERVALSTARTTIME_GMT'],
-                                                                  utc=True)
+    wind_solar_forecast['INTERVALSTARTTIME_GMT'] = pd.to_datetime(wind_solar_forecast['INTERVALSTARTTIME_GMT'], utc=True)
     solar_df = wind_solar_forecast[wind_solar_forecast['RENEWABLE_TYPE'] == 'Solar']
     wind_df = wind_solar_forecast[wind_solar_forecast['RENEWABLE_TYPE'] == 'Wind']
     return today_forecast, weather_df,  demand_forecast, solar_df, wind_df, wind_solar_forecast
@@ -273,6 +272,7 @@ end_date = st.sidebar.date_input("End date", value=start_date + pd.Timedelta('1d
 logger.info(f'date range selected is: {st.session_state["start"]} - {st.session_state["end"]}')
 s_ls = [int(x) for x in str(start_date).split('-')]
 e_ls = [int(x) for x in str(end_date).split('-')]
+s, e = datetime(s_ls[0], s_ls[1], s_ls[2]), datetime(e_ls[0], e_ls[1], e_ls[2])
 start_localized, end_localized = pytz.utc.localize(datetime(s_ls[0], s_ls[1], s_ls[2])), pytz.utc.localize(
     datetime(e_ls[0], e_ls[1], e_ls[2]))
 if 'start' not in st.session_state.keys():
@@ -311,10 +311,8 @@ st.session_state.key = 0
 
 today_forecast, future_weather_df, demand_forecast, solar_df, wind_df, wind_solar_forecast = get_forecasts(st.session_state.site)
 
-pricing = get_tou_pricing(site, start_localized, end_localized)
-wind_solar_forecast = wind_solar_forecast.sort_values('INTERVALSTARTTIME_GMT').loc[
-    (wind_solar_forecast['INTERVALSTARTTIME_GMT'] >= start_localized) & (
-                wind_solar_forecast['INTERVALSTARTTIME_GMT'] <= end_localized)]
+pricing = get_tou_pricing(site, s, e)
+
 solar_df = solar_df.sort_values('INTERVALSTARTTIME_GMT').loc[
     (solar_df['INTERVALSTARTTIME_GMT'] >= start_localized) & (solar_df['INTERVALSTARTTIME_GMT'] <= end_localized)]
 wind_df = wind_df.sort_values('INTERVALSTARTTIME_GMT').loc[
