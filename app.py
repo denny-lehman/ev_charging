@@ -286,7 +286,7 @@ logger.info(f'eco selected: {st.session_state["eco"]}\nlow cost selected: {st.se
 st.sidebar.subheader('Select date')
 start_date = st.sidebar.date_input("Start date", value=today, min_value=today, max_value=today + pd.Timedelta('6d'),
                                    key='start')
-end_date = st.sidebar.date_input("End date", value=start_date + pd.Timedelta('1d'),
+end_date = st.sidebar.date_input("End date", value=start_date + pd.Timedelta('1d'), min_value=today + pd.Timedelta('1d'),
                                  max_value=today + pd.Timedelta('7d'), key='end')
 logger.info(f'date range selected is: {st.session_state["start"]} - {st.session_state["end"]}')
 s_ls = [int(x) for x in str(start_date).split('-')]
