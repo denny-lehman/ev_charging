@@ -34,6 +34,7 @@ print("---------------------------")
 logger.debug('starting app')
 test_mode = True
 logger.info(f'test mode is {test_mode}')
+minimal = True
 
 ##########################################################################
 ## Establish functions
@@ -252,9 +253,9 @@ st.markdown("<h3 style='text-align: center; color: green;'>Helping EV Owners fin
 # creates a horizontal line
 st.divider()
 
-# create columns for layout of the app (1st column is 70% of the page, 2nd column is 30%)
-col1, col2 = st.columns([0.7, 0.3])
-
+# # create columns for layout of the app (1st column is 70% of the page, 2nd column is 30%)
+# col1, col2 = st.columns([0.7, 0.3])
+col1 = st.container()
 # create a sidebar for user input
 st.sidebar.title("When and where?")
 st.sidebar.subheader('Select charging site')
@@ -266,6 +267,16 @@ site = st.sidebar.selectbox('Click below to select a charger location',
                             label_visibility="collapsed"
                             )
 logger.info(f'site selected: {st.session_state["site"]}')
+
+m = folium.Map(location=[*site2latlon[st.session_state['site']]], zoom_start=9)
+folium.Marker(
+    location=[*site2latlon[st.session_state['site']]],
+    popup=f"{st.session_state['site']}",
+    icon=folium.Icon(color="green")
+).add_to(m)
+
+with st.sidebar:
+    folium_static(m, width=260, height=200)
 
 st.sidebar.subheader('Select your preference(s)')
 eco = st.sidebar.checkbox('Eco-Friendly', key='eco')
@@ -318,27 +329,24 @@ with col1:
 
     st.markdown(f"<h2 style='text-align: center; color: green;'>Availability at {site} </h2>",
                 unsafe_allow_html=True)
-    m = folium.Map(location=[*site2latlon[st.session_state['site']]], zoom_start=10)
-    folium.Marker(
-        location=[*site2latlon[st.session_state['site']]],
-        popup=f"{st.session_state['site']}",
-        icon=folium.Icon(color="green")
-    ).add_to(m)
+
 
 with st.sidebar:
-    user_loc = streamlit_geolocation()
-    if any(list(user_loc.values())):
-        st.write("Current Location: ")
-        st.write("Latitude: ", str(user_loc['latitude']))
-        st.write("Longitude: ", str(user_loc['longitude']))
-        folium.Marker(
-            location=[user_loc["latitude"], user_loc["longitude"]],
-            popup="Your Current Location",
-            icon=folium.Icon(color="green", icon="fa-user", prefix="fa-solid")
-        ).add_to(m)
-    else:
-        st.write('Waiting for location...')
+    if not minimal:
+        user_loc = streamlit_geolocation()
+        if any(list(user_loc.values())):
+            st.write("Current Location: ")
+            st.write("Latitude: ", str(user_loc['latitude']))
+            st.write("Longitude: ", str(user_loc['longitude']))
+            folium.Marker(
+                location=[user_loc["latitude"], user_loc["longitude"]],
+                popup="Your Current Location",
+                icon=folium.Icon(color="green", icon="fa-user", prefix="fa-solid")
+            ).add_to(m)
+        else:
+            st.write('Waiting for location...')
 
+col1.column_config = {'justify': 'right'}
 with col1:
 
 ##########################################################################
@@ -543,23 +551,23 @@ with col1:
 ##########################################################################
 ## Weather Forecast
 ##########################################################################
-minimal = False
-if not minimal:
-    col2.column_config = {'justify': 'right'}
-    with col2:
-        st.markdown(
-            f"<h3 style='text-align: center; color: white;'>Weather Forecast for {site} {today_forecast['name'].iloc[0]} </h3>",
-            unsafe_allow_html=True)
-        col2_1, col2_2 = st.columns([0.5, 0.5])
-        if today_forecast is not None:
-            logger.info(today_forecast.columns)
-            assert 'temperature_degF' in today_forecast.columns, f"no temperature in {today_forecast.columns}"
-            col2_1.metric('Temperature (F)', today_forecast['temperature_degF'].iloc[0])
-            col2_2.image(today_forecast['icon'].iloc[0], use_column_width=False)
-            col2_1.write(today_forecast['detailedForecast'].iloc[0])
-        else:
-            col2_1.write('Unable to retrieve forecast data')
-            if col2_1.button('Retry'):
-                get_forecasts(site)
-        st.subheader("EV Charging Station Location")
-        folium_static(m, width=450, height=450)
+#
+# if not minimal:
+#     col2.column_config = {'justify': 'right'}
+#     with col2:
+#         st.markdown(
+#             f"<h3 style='text-align: center; color: white;'>Weather Forecast for {site} {today_forecast['name'].iloc[0]} </h3>",
+#             unsafe_allow_html=True)
+#         col2_1, col2_2 = st.columns([0.5, 0.5])
+#         if today_forecast is not None:
+#             logger.info(today_forecast.columns)
+#             assert 'temperature_degF' in today_forecast.columns, f"no temperature in {today_forecast.columns}"
+#             col2_1.metric('Temperature (F)', today_forecast['temperature_degF'].iloc[0])
+#             col2_2.image(today_forecast['icon'].iloc[0], use_column_width=False)
+#             col2_1.write(today_forecast['detailedForecast'].iloc[0])
+#         else:
+#             col2_1.write('Unable to retrieve forecast data')
+#             if col2_1.button('Retry'):
+#                 get_forecasts(site)
+#         st.subheader("EV Charging Station Location")
+#         folium_static(m, width=450, height=450)
