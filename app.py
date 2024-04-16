@@ -120,7 +120,7 @@ def make_recommendation(avail_df, pricing_df, solar_df, wind_df):
     wind_solar_df['MW'] = wind_solar_df['MW_x'] + wind_solar_df['MW_y']
     wind_solar_df = wind_solar_df.rename(columns={'INTERVALSTARTTIME_GMT': 'datetime'})
     pricing_df['datetime'] = pricing_df.index
-    availability = avail_df.loc[avail_df['% available'] > 90, :]
+    availability = avail_df.loc[avail_df['% available'] > 85, :]
     pricing = pricing_df.loc[pricing_df['price'] < 0.20, :]
     MW = wind_solar_df.loc[wind_solar_df['MW'] > wind_solar_df['MW'].mean(), :]
 
@@ -462,7 +462,7 @@ with col1:
     def categorize_availability(val):
         availability = ['Very Available', 'Moderate', 'Busy', 'Very Busy']
         availability_txt = ''
-        if val > 90:
+        if val > 85:
             availability_txt = availability[0]
         elif val > 70:
             availability_txt = availability[1]
