@@ -243,7 +243,7 @@ col01, col02, col03 = st.columns(3)
 # title in markdown to allow for styling and positioning
 #st.markdown("<h1 style='text-align: center; color: orange;'>Charge Buddy</h1>", unsafe_allow_html=True) d
 with col02:
-    st.markdown("<p style='text-align: center; color: grey;' > " + img_to_html('ChargebuddyIcon.jpeg') + "</p>", unsafe_allow_html=True)
+    st.markdown("<p style='text-align: center; color: grey;' > " + img_to_html('img/ChargebuddyIconTransparent.jpeg') + "</p>", unsafe_allow_html=True)
 
 
 st.markdown("<h3 style='text-align: center; color: green;'>Helping EV Owners find the best time to charge</h3>",
