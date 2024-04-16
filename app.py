@@ -334,6 +334,11 @@ with st.sidebar:
         st.write("Current Location: ")
         st.write("Latitude: ", str(user_loc['latitude']))
         st.write("Longitude: ", str(user_loc['longitude']))
+        folium.Marker(
+            location=[user_loc["latitude"], user_loc["longitude"]],
+            popup="Your Current Location",
+            icon=folium.Icon(color="green", icon="fa-user", prefix="fa-solid")
+        ).add_to(m)
     else:
         st.write('Waiting for location...')
 
@@ -360,12 +365,7 @@ with col1:
         popup=f"{st.session_state['site']}",
         icon=folium.Icon(color="green")
     ).add_to(m)
-    if [user_loc["latitude"], user_loc["longitude"]] is not type(None):
-        folium.Marker(
-            location=[user_loc["latitude"], user_loc["longitude"]],
-            popup="Your Current Location",
-            icon=folium.Icon(color="green", icon="fa-user", prefix="fa-solid")
-        ).add_to(m)
+
     
 
 
