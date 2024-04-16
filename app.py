@@ -446,14 +446,14 @@ with col1:
         recommendation_chunks = get_recommendation_chunks(recommendation)
         rec_string_header = "Based on selected preferences, the recommended time(s) to charge are: "
         st.markdown(
-            f"<p style='text-align: left; color: orange;'>{rec_string_header}</p>",
+            f"<p style='text-align: left; color: green;'>{rec_string_header}</p>",
             unsafe_allow_html=True)
         rec_string = ''
         for rec in recommendation_chunks:
             rec_string += f"{rec[0]:%A, %B %dth} from {rec[0].strftime('%I %p')} to {rec[1].strftime('%I %p')}\n"
         stx.scrollableTextbox(rec_string, height=100)
     else:
-        st.markdown(f"<p style='text-align: left; color: orange;'>No recommendations available based on your stated preferences</p>", unsafe_allow_html=True)
+        st.markdown(f"<p style='text-align: left; color: green;'>No recommendations available based on your stated preferences</p>", unsafe_allow_html=True)
     st.write('Availability from ', start_date, ' to ', end_date)
 
     # create a column in the X dataframe that is true if the time is in the recommendation
