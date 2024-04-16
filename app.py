@@ -360,11 +360,12 @@ with col1:
         popup=f"{st.session_state['site']}",
         icon=folium.Icon(color="green")
     ).add_to(m)
-    folium.Marker(
-        location=[[user_loc["latitude"], user_loc["longitude"]]],
-        popup="Your Current Location",
-        icon=folium.Icon(color="green", icon="fa-user", prefix="fa-solid")
-    ).add_to(m)
+    if user_loc:
+        folium.Marker(
+            location=[[user_loc["latitude"], user_loc["longitude"]]],
+            popup="Your Current Location",
+            icon=folium.Icon(color="green", icon="fa-user", prefix="fa-solid")
+        ).add_to(m)
 
 
 ##########################################################################
