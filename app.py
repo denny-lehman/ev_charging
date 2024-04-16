@@ -294,11 +294,11 @@ range_end_ls = [int(x) for x in str(today + pd.Timedelta('7d')).split('-')]
 range_start = datetime(range_start_ls[0], range_start_ls[1], range_start_ls[2])
 range_end = datetime(range_end_ls[0], range_end_ls[1], range_end_ls[2])
 
-st.sidebar.info('EDIT ME: This app is a simple example of '
-                'using Streamlit to create a financial data web app.\n'
-                '\nIt is maintained by [Paduel]('
-                'https://twitter.com/paduel_py).\n\n'
-                'Check the code at https://github.com/paduel/streamlit_finance_chart')
+# st.sidebar.info('EDIT ME: This app is a simple example of '
+#                 'using Streamlit to create a financial data web app.\n'
+#                 '\nIt is maintained by [Paduel]('
+#                 'https://twitter.com/paduel_py).\n\n'
+#                 'Check the code at https://github.com/paduel/streamlit_finance_chart')
 
 # TODO: is this a switch?
 
