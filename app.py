@@ -267,7 +267,7 @@ st.set_page_config(page_title='Charge Buddy', page_icon=':zap:', layout='wide', 
 # title in markdown to allow for styling and positioning
 st.markdown("<h1 style='text-align: center; color: orange;'>Charge Buddy</h1>", unsafe_allow_html=True)
 
-st.markdown("<h3 style='text-align: center; color: white;'>Helping EV Owners find the best time to charge</h3>",
+st.markdown("<h3 style='text-align: center; color: orange;'>Helping EV Owners find the best time to charge</h3>",
             unsafe_allow_html=True)
 
 # creates a horizontal line
@@ -283,7 +283,8 @@ st.sidebar.subheader('Select charging site')
 # create a dropdown menu for the user to select a site
 site = st.sidebar.selectbox('Click below to select a charger location',
                             sites, index=1,
-                            key='site'  # adds the site to the session state
+                            key='site',  # adds the site to the session state
+                            label_visibility="collapsed"
                             )
 logger.info(f'site selected: {st.session_state["site"]}')
 
