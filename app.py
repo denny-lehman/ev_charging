@@ -48,30 +48,36 @@ def load_model():
 
 
 def get_tou_pricing(site, start, end, tz='UTC-07:00'):
-    pricing = pd.DataFrame(index=pd.date_range(start, end, inclusive='both', freq='h'), columns=['price'])
+    pricing = pd.DataFrame(index=pd.date_range(start, end, inclusive='both', freq='h'), columns=['price', 'Pricing'])
     pricing.index = pricing.index.tz_localize(tz)
     if site == 'Office001':
         for i in list(pricing.index):
             # super off-peak
             if i.hour in range(9, 14):
                 pricing.loc[i, 'price'] = 0.18
+                pricing.loc[i, 'Pricing'] = 'Super Off-Peak'
             # peak
             elif i.hour in range(16, 22):
                 pricing.loc[i, 'price'] = 0.40
+                pricing.loc[i, 'Pricing'] = 'Peak'
             # off-peak
             else:
                 pricing.loc[i, 'price'] = 0.20
+                pricing.loc[i, 'Pricing'] = 'Off-Peak'
     else:
         for i in list(pricing.index):
             # super off-peak
             if i.hour in range(9, 14):
                 pricing.loc[i, 'price'] = 0.12
-            # peak
+                pricing.loc[i, 'Pricing'] = 'Super Off-Peak'
+                # peak
             elif i.hour in range(16, 22):
                 pricing.loc[i, 'price'] = 0.40
-            # off-peak
+                pricing.loc[i, 'Pricing'] = 'Peak'
+                # off-peak
             else:
                 pricing.loc[i, 'price'] = 0.14
+                pricing.loc[i, 'Pricing'] = 'Off-Peak'
 
     return pricing
 
@@ -193,50 +199,7 @@ def img_to_html(img_path):
         img_to_bytes(img_path)
     )
     return img_html
-    # DELETE ME WHEN TEST COMPLETE
-    # logger.info(f'getting recommendation chunks {type(og_recommendation)}, shape : {og_recommendation.shape}, columns: {og_recommendation.columns}')
-    # og_recommendation.to_csv('test_recommendation.csv')
-    # recommendation = og_recommendation.copy()
-    # if len(recommendation) == 1:
-    #     return recommendation
-    # recommendation['time_delta'] = pd.to_datetime(recommendation['datetime']).diff()
-    # recommendation.loc[0, 'start'] = 1
-    # for i in range(len(recommendation)-1):
-    #     if recommendation['time_delta'].iloc[i+1] != pd.Timedelta('1h'):
-    #         recommendation.loc[i, 'end'] = 1
-    #         recommendation.loc[i+1, 'start'] = 1
-    #     else:
-    #         recommendation.loc[i, 'end'] = 0
-    #         recommendation.loc[i+1, 'start'] = 0
-    # recommendation.loc[len(recommendation)-1, 'end'] = 1
-    # small_recommendation = recommendation.loc[(recommendation['start'] == 1) | (recommendation['end'] == 1), :]
-    #
-    # recommendation_start_end = []
-    # for i in list(small_recommendation.index):
-    #     if (small_recommendation.loc[i, 'start'] == 1) & (small_recommendation.loc[i, 'end'] == 1):
-    #         recommendation_start_end.append(
-    #             (small_recommendation.loc[i, 'datetime'], small_recommendation.loc[i, 'datetime'] + pd.Timedelta('1h')))
-    #     elif small_recommendation.loc[i, 'start'] == 1:
-    #         start = small_recommendation.loc[i, 'datetime']
-    #         print(small_recommendation.loc[:, ['start', 'end']])
-    #         for j in list(small_recommendation.index):
-    #             if small_recommendation.loc[j, 'end'] == 1:
-    #                 end = small_recommendation.loc[j, 'datetime']
-    #                 recommendation_start_end.append((start, end))
-    # final_list = []
-    # for i in recommendation_start_end:
-    #     if i not in final_list:
-    #         final_list.append(i)
-    #
-    # return final_list
 
-# def try_forecast(site:str):
-# today_forecast, demand_forecast, solar_df, wind_df, wind_solar_forecast = get_forecasts(site)
-# st.session_state[f'{site}_today_forecast'] = today_forecast
-# st.session_state[f'{site}_demand_forecast'] = demand_forecast
-# st.session_state[f'{site}_solar_df'] = solar_df
-# st.session_state[f'{site}_wind_df'] = wind_df
-# st.session_state[f'{site}_wind_solar_forecast'] = wind_solar_forecast
 
 ##########################################################################
 ## Initialize variables
@@ -347,19 +310,7 @@ range_end = datetime(range_end_ls[0], range_end_ls[1], range_end_ls[2])
 
 # TODO: is this a switch?
 
-with st.sidebar:
-    user_loc = streamlit_geolocation()
-    if any(list(user_loc.values())):
-        st.write("Current Location: ")
-        st.write("Latitude: ", str(user_loc['latitude']))
-        st.write("Longitude: ", str(user_loc['longitude']))
-        folium.Marker(
-            location=[user_loc["latitude"], user_loc["longitude"]],
-            popup="Your Current Location",
-            icon=folium.Icon(color="green", icon="fa-user", prefix="fa-solid")
-        ).add_to(m)
-    else:
-        st.write('Waiting for location...')
+
 # pull data here
 st.session_state.key = 0
 ##########################################################################
@@ -375,15 +326,28 @@ with col1:
 
     st.markdown(f"<h2 style='text-align: center; color: white;'>Availability at {site} </h2>",
                 unsafe_allow_html=True)
-    m = folium.Map(location=[*site2latlon[st.session_state['site']]], zoom_start=5)
+    m = folium.Map(location=[*site2latlon[st.session_state['site']]], zoom_start=10)
     folium.Marker(
         location=[*site2latlon[st.session_state['site']]],
         popup=f"{st.session_state['site']}",
         icon=folium.Icon(color="green")
     ).add_to(m)
-    
 
+with st.sidebar:
+    user_loc = streamlit_geolocation()
+    if any(list(user_loc.values())):
+        st.write("Current Location: ")
+        st.write("Latitude: ", str(user_loc['latitude']))
+        st.write("Longitude: ", str(user_loc['longitude']))
+        folium.Marker(
+            location=[user_loc["latitude"], user_loc["longitude"]],
+            popup="Your Current Location",
+            icon=folium.Icon(color="green", icon="fa-user", prefix="fa-solid")
+        ).add_to(m)
+    else:
+        st.write('Waiting for location...')
 
+with col1:
 
 ##########################################################################
 ## Model Inference
@@ -490,36 +454,45 @@ with col1:
         stx.scrollableTextbox(rec_string, height=100)
     else:
         st.markdown(f"<p style='text-align: left; color: orange;'>No recommendations available based on your stated preferences</p>", unsafe_allow_html=True)
-    st.write('Availability from ', start_date, ' to ', end_date, '- Recommended times are highlighted in green.')
+    st.write('Availability from ', start_date, ' to ', end_date)
 
     # create a column in the X dataframe that is true if the time is in the recommendation
     X['recommended'] = X.index.isin(recommendation['datetime'])
-    selection = alt.selection_multi(fields=['recommended'], bind='legend')
 
+    def categorize_availability(val):
+        availability = ['Very Available', 'Moderate', 'Busy', 'Very Busy']
+        availability_txt = ''
+        if val > 90:
+            availability_txt = availability[0]
+        elif val > 70:
+            availability_txt = availability[1]
+        elif val > 50:
+            availability_txt = availability[2]
+        else:
+            availability_txt = availability[3]
+        return availability_txt
+
+    X['Availability'] = X['% available'].apply(categorize_availability)
+    av_domain = ['Very Available', 'Moderate', 'Busy', 'Very Busy']
+    av_range = ['seagreen', 'yellow', 'orange', 'firebrick']
 
     availability_chart = alt.Chart(X.reset_index()).mark_bar().encode(
         x=alt.X('datetime:T', title='Time'),
         y=alt.Y('% available:Q', title='Availability (%)'),
         tooltip=[alt.Tooltip('datetime:T', title='Date'),
-                 alt.Tooltip('% available:Q', format=",.1f", title='Availability (%)')],
-        color=alt.condition(alt.expr.datum['recommended'], alt.value('green'), alt.value('steelblue'))
-    ).properties(
-        width=800,
-        height=250
-    ).interactive(
-    ).add_params(selection
-    )
-
+                 alt.Tooltip('% available:Q', format=",.1f", title='Availability (%)'),
+                 alt.Tooltip('Availability')],
+        color=alt.Color('Availability').scale(domain=av_domain, range=av_range).legend(orient="right")#alt.condition(alt.expr.datum['recommended'], alt.value('green'), alt.value('steelblue'))
+    ).interactive()
+    p_domain = ['Super Off-Peak', 'Off-Peak', 'Peak']
+    p_range = ['seagreen', 'lightgreen', 'orange']
     #logger.info(f'pricing is {pricing.reset_index().info()}')
-    pricing_chart = alt.Chart(pricing.reset_index(), title='Pricing').mark_line().encode(
+    pricing_chart = alt.Chart(pricing.reset_index(), title='Pricing').mark_bar().encode(
         x=alt.X('index:T', title='Time'),
         y=alt.Y('price:Q', title='Price ($/kWh)'),
         tooltip=[alt.Tooltip('index', title='Time'),
                  alt.Tooltip('price', title='Price ($/kWh)')],
-        color=alt.value('steelblue')
-    ).properties(
-        width=800,
-        height=250
+        color=alt.Color('Pricing').scale(domain=p_domain, range=p_range).legend(orient='right')
     ).interactive()
 
     solar = alt.Chart(solar_df, title='Solar Forecast').mark_bar().encode(
@@ -527,10 +500,7 @@ with col1:
         y=alt.Y('MW', title='Forecasted Solar Energy (MW)'),
         tooltip=[alt.Tooltip('INTERVALSTARTTIME_GMT', title='Time'),
                  alt.Tooltip('MW', title='Solar (MW)')],
-        color=alt.Color('RENEWABLE_TYPE:N', title='Renewable Type')
-    ).properties(
-        width=800,
-        height=250
+        color=alt.Color('RENEWABLE_TYPE:N', title='Renewable Type').legend(orient="right")
     ).interactive()
 
     wind = alt.Chart(wind_df, title='Wind Forecast').mark_bar().encode(
@@ -538,42 +508,43 @@ with col1:
         y=alt.Y('MW', title='Forecasted Wind Energy (MW)'),
         tooltip=[alt.Tooltip('INTERVALSTARTTIME_GMT', title='Time'),
                  alt.Tooltip('MW', title='Wind (MW)')],
-        color=alt.Color('RENEWABLE_TYPE:N', title='Renewable Type')
-    ).properties(
-        width=800,
-        height=250
+        color=alt.Color('RENEWABLE_TYPE:N', title='Renewable Type').legend(orient="right")
     ).interactive()
 
     solar_chart = solar + wind
     solar_chart = solar_chart.properties(title='Renewable Energy Forecast')
-    solar_chart.layer[0].encoding.y.title = 'Forecasted Renewable Energy (MW)'
-    solar_chart.layer[1].encoding.y.title = 'Forecasted Renewable Energy (MW)'
+    solar_chart.layer[0].encoding.y.title = 'Energy (MW)'
+    solar_chart.layer[1].encoding.y.title = 'Energy (MW)'
 
     if eco & cost:
-        solar_chart = set_renewable_chart_legend_pos(solar_chart, 700, 690)
-        st.altair_chart(alt.vconcat(availability_chart, pricing_chart, solar_chart).resolve_scale(x='shared', y='independent'), use_container_width=True)
+        #st.altair_chart(alt.vconcat(availability_chart, pricing_chart).resolve_scale(x='shared', y='independent'), use_container_width=True)
+        st.altair_chart(availability_chart, use_container_width=True)
+        st.divider()
+        st.altair_chart(pricing_chart, use_container_width=True)
+        st.divider()
+        st.altair_chart(solar_chart, use_container_width=True)
+        #solar_chart = set_renewable_chart_legend_pos(solar_chart, 700, 690)
+        #st.altair_chart(alt.vconcat(availability_chart, pricing_chart, solar_chart).resolve_scale(x='shared', y='independent'), use_container_width=True)
     elif eco:
-        solar_chart = set_renewable_chart_legend_pos(solar_chart, 700, 310)
-        st.altair_chart(alt.vconcat(availability_chart, solar_chart).resolve_scale(x='shared', y='independent'), use_container_width=True)
+        st.altair_chart(availability_chart, use_container_width=True)
+        st.divider()
+        st.altair_chart(solar_chart, use_container_width=True)
+        #solar_chart = set_renewable_chart_legend_pos(solar_chart, 700, 310)
+        #st.altair_chart(alt.vconcat(availability_chart, solar_chart).resolve_scale(x='shared', y='independent'), use_container_width=True)
     elif cost:
-        st.altair_chart(alt.vconcat(availability_chart, pricing_chart).resolve_scale(x='shared', y='independent'), use_container_width=True)
+        st.altair_chart(availability_chart, use_container_width=True)
+        st.divider()
+        st.altair_chart(pricing_chart, use_container_width=True)
+        #st.altair_chart(alt.vconcat(availability_chart, pricing_chart).resolve_scale(x='shared', y='independent'), use_container_width=True)
     else:
-        st.altair_chart(availability_chart)
+        st.altair_chart(availability_chart, use_container_width=True)
 
-    availability = ['Very Available', 'Moderate', 'Busy', 'Very Busy']
+
 
     st.subheader(f'How often are spots available at {site}?')
     avg_availability = np.round(X['% available'].mean(), 1)
 
-    availability_txt = ''
-    if avg_availability > 90:
-        availability_txt = availability[0]
-    elif avg_availability > 70:
-        availability_txt = availability[1]
-    elif avg_availability > 50:
-        availability_txt = availability[2]
-    else:
-        availability_txt = availability[3]
+    availability_txt = categorize_availability(avg_availability)
     st.text(f'{availability_txt}. Average availability: ' + str(avg_availability) + '%')
     st.text('More locations coming soon!')
 
