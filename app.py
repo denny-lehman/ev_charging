@@ -483,7 +483,7 @@ with col1:
     availability_chart = alt.Chart(X.reset_index()).mark_bar().encode(
         x=alt.X('datetime:T', title='Time'),
         y=alt.Y('% available:Q', title='Availability (%)'),
-        tooltip=[alt.Tooltip('datetime:T', title='Date'),
+        tooltip=[alt.Tooltip('datetime:T', format="%Y-%m-%dT%H:%M:%S", title='Date'),
                  alt.Tooltip('% available:Q', format=",.1f", title='Availability (%)')],
         color=alt.condition(alt.expr.datum['recommended'], alt.value('green'), alt.value('steelblue'))
     ).properties(
