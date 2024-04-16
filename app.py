@@ -328,20 +328,6 @@ range_end = datetime(range_end_ls[0], range_end_ls[1], range_end_ls[2])
 #                 'https://twitter.com/paduel_py).\n\n'
 #                 'Check the code at https://github.com/paduel/streamlit_finance_chart')
 
-with st.sidebar:
-    user_loc = streamlit_geolocation()
-    if any(list(user_loc.values())):
-        st.write("Current Location: ")
-        st.write("Latitude: ", str(user_loc['latitude']))
-        st.write("Longitude: ", str(user_loc['longitude']))
-        folium.Marker(
-            location=[user_loc["latitude"], user_loc["longitude"]],
-            popup="Your Current Location",
-            icon=folium.Icon(color="green", icon="fa-user", prefix="fa-solid")
-        ).add_to(m)
-    else:
-        st.write('Waiting for location...')
-
 # TODO: is this a switch?
 
 # pull data here
@@ -365,8 +351,21 @@ with col1:
         popup=f"{st.session_state['site']}",
         icon=folium.Icon(color="green")
     ).add_to(m)
-
     
+
+with st.sidebar:
+    user_loc = streamlit_geolocation()
+    if any(list(user_loc.values())):
+        st.write("Current Location: ")
+        st.write("Latitude: ", str(user_loc['latitude']))
+        st.write("Longitude: ", str(user_loc['longitude']))
+        folium.Marker(
+            location=[user_loc["latitude"], user_loc["longitude"]],
+            popup="Your Current Location",
+            icon=folium.Icon(color="green", icon="fa-user", prefix="fa-solid")
+        ).add_to(m)
+    else:
+        st.write('Waiting for location...')
 
 
 ##########################################################################
@@ -470,7 +469,7 @@ with col1:
             unsafe_allow_html=True)
         rec_string = ''
         for rec in recommendation_chunks:
-            rec_string += f"{rec[0].date()} from {rec[0].strftime('%I:%M %p')} to {rec[1].strftime('%I:%M %p')}\n"
+            rec_string += f"{rec[0]:%m-%d}: {rec[0].strftime('%I:%M %p')} - {rec[1].strftime('%I:%M %p')}\n"
         stx.scrollableTextbox(rec_string, height=100)
     else:
         st.markdown(f"<p style='text-align: left; color: orange;'>No recommendations available based on your stated preferences</p>", unsafe_allow_html=True)
