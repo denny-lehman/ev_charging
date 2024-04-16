@@ -330,6 +330,19 @@ range_end = datetime(range_end_ls[0], range_end_ls[1], range_end_ls[2])
 
 # TODO: is this a switch?
 
+with st.sidebar:
+    user_loc = streamlit_geolocation()
+    if any(list(user_loc.values())):
+        st.write("Current Location: ")
+        st.write("Latitude: ", str(user_loc['latitude']))
+        st.write("Longitude: ", str(user_loc['longitude']))
+        folium.Marker(
+            location=[user_loc["latitude"], user_loc["longitude"]],
+            popup="Your Current Location",
+            icon=folium.Icon(color="green", icon="fa-user", prefix="fa-solid")
+        ).add_to(m)
+    else:
+        st.write('Waiting for location...')
 # pull data here
 st.session_state.key = 0
 ##########################################################################
@@ -353,19 +366,6 @@ with col1:
     ).add_to(m)
     
 
-with st.sidebar:
-    user_loc = streamlit_geolocation()
-    if any(list(user_loc.values())):
-        st.write("Current Location: ")
-        st.write("Latitude: ", str(user_loc['latitude']))
-        st.write("Longitude: ", str(user_loc['longitude']))
-        folium.Marker(
-            location=[user_loc["latitude"], user_loc["longitude"]],
-            popup="Your Current Location",
-            icon=folium.Icon(color="green", icon="fa-user", prefix="fa-solid")
-        ).add_to(m)
-    else:
-        st.write('Waiting for location...')
 
 
 ##########################################################################
