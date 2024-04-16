@@ -263,11 +263,13 @@ logger.info('initialized site variables and maps')
 ##########################################################################
 
 st.set_page_config(page_title='Charge Buddy', page_icon=':zap:', layout='wide', initial_sidebar_state='auto')
-
+col01, col02, col03 = st.columns(3)
 # title in markdown to allow for styling and positioning
-st.markdown("<h1 style='text-align: center; color: orange;'>Charge Buddy</h1>", unsafe_allow_html=True)
+#st.markdown("<h1 style='text-align: center; color: orange;'>Charge Buddy</h1>", unsafe_allow_html=True)
+with col02:
+    st.image("ChargebuddyIcon.jpeg", use_column_width=True)
 
-st.markdown("<h3 style='text-align: center; color: orange;'>Helping EV Owners find the best time to charge</h3>",
+st.markdown("<h3 style='text-align: center; color: green;'>Helping EV Owners find the best time to charge</h3>",
             unsafe_allow_html=True)
 
 # creates a horizontal line
@@ -288,7 +290,7 @@ site = st.sidebar.selectbox('Click below to select a charger location',
                             )
 logger.info(f'site selected: {st.session_state["site"]}')
 
-st.sidebar.subheader('Select your preference')
+st.sidebar.subheader('Select your preference(s)')
 eco = st.sidebar.checkbox('Eco-Friendly', key='eco')
 cost = st.sidebar.checkbox('Low Cost', key='cost')
 logger.info(f'eco selected: {st.session_state["eco"]}\nlow cost selected: {st.session_state["cost"]}')
