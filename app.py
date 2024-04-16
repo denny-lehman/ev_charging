@@ -360,6 +360,12 @@ with col1:
         popup=f"{st.session_state['site']}",
         icon=folium.Icon(color="green")
     ).add_to(m)
+    folium.Marker(
+        location=[[user_loc["latitude"], user_loc["longitude"]]],
+        popup="Your Current Location",
+        icon=folium.Icon(color="green", icon="fa-user", prefix="fa-solid")
+    ).add_to(m)
+
 
 ##########################################################################
 ## Model Inference
@@ -470,6 +476,7 @@ with col1:
 
     # create a column in the X dataframe that is true if the time is in the recommendation
     X['recommended'] = X.index.isin(recommendation['datetime'])
+    selection = alt.selection_multi(fields=['recommended'], bind='legend')
 
 
     availability_chart = alt.Chart(X.reset_index()).mark_bar().encode(
@@ -481,7 +488,9 @@ with col1:
     ).properties(
         width=800,
         height=250
-    ).interactive()
+    ).interactive(
+    ).add_params(selection
+    )
 
     #logger.info(f'pricing is {pricing.reset_index().info()}')
     pricing_chart = alt.Chart(pricing.reset_index(), title='Pricing').mark_line().encode(
