@@ -272,14 +272,6 @@ eco = st.sidebar.checkbox('Eco-Friendly', key='eco')
 cost = st.sidebar.checkbox('Low Cost', key='cost')
 logger.info(f'eco selected: {st.session_state["eco"]}\nlow cost selected: {st.session_state["cost"]}')
 
-# lat, long = 0, 0
-# lat, long = site2latlon.get(site)
-# logger.info(f'lat lon selected: {lat}, {long}')
-#
-# forecast_df = get_weather(lat, long, test=False)
-# logger.info(f'todays forecast: {forecast_df.head()}')
-# forecast_df.to_csv('data/test_forecast.csv')
-
 st.sidebar.subheader('Select date')
 start_date = st.sidebar.date_input("Start date", value=today, min_value=today, max_value=today + pd.Timedelta('6d'),
                                    key='start')
@@ -302,11 +294,11 @@ range_end_ls = [int(x) for x in str(today + pd.Timedelta('7d')).split('-')]
 range_start = datetime(range_start_ls[0], range_start_ls[1], range_start_ls[2])
 range_end = datetime(range_end_ls[0], range_end_ls[1], range_end_ls[2])
 
-#st.sidebar.info('EDIT ME: This app is a simple example of '
-#                 'using Streamlit to create a financial data web app.\n'
-#                 '\nIt is maintained by [Paduel]('
-#                 'https://twitter.com/paduel_py).\n\n'
-#                 'Check the code at https://github.com/paduel/streamlit_finance_chart')
+st.sidebar.info('EDIT ME: This app is a simple example of '
+                'using Streamlit to create a financial data web app.\n'
+                '\nIt is maintained by [Paduel]('
+                'https://twitter.com/paduel_py).\n\n'
+                'Check the code at https://github.com/paduel/streamlit_finance_chart')
 
 # TODO: is this a switch?
 
@@ -324,7 +316,7 @@ pricing = get_tou_pricing(site, s, e)
 col1.column_config = {'justify': 'center'}
 with col1:
 
-    st.markdown(f"<h2 style='text-align: center; color: white;'>Availability at {site} </h2>",
+    st.markdown(f"<h2 style='text-align: center; color: green;'>Availability at {site} </h2>",
                 unsafe_allow_html=True)
     m = folium.Map(location=[*site2latlon[st.session_state['site']]], zoom_start=10)
     folium.Marker(
@@ -450,7 +442,7 @@ with col1:
             unsafe_allow_html=True)
         rec_string = ''
         for rec in recommendation_chunks:
-            rec_string += f"{rec[0]:%m-%d}: {rec[0].strftime('%I:%M %p')} - {rec[1].strftime('%I:%M %p')}\n"
+            rec_string += f"{rec[0]:%A, %B %dth} from {rec[0].strftime('%I %p')} to {rec[1].strftime('%I %p')}\n"
         stx.scrollableTextbox(rec_string, height=100)
     else:
         st.markdown(f"<p style='text-align: left; color: orange;'>No recommendations available based on your stated preferences</p>", unsafe_allow_html=True)
@@ -551,21 +543,23 @@ with col1:
 ##########################################################################
 ## Weather Forecast
 ##########################################################################
-col2.column_config = {'justify': 'right'}
-with col2:
-    st.markdown(
-        f"<h3 style='text-align: center; color: white;'>Weather Forecast for {site} {today_forecast['name'].iloc[0]} </h3>",
-        unsafe_allow_html=True)
-    col2_1, col2_2 = st.columns([0.5, 0.5])
-    if today_forecast is not None:
-        logger.info(today_forecast.columns)
-        assert 'temperature_degF' in today_forecast.columns, f"no temperature in {today_forecast.columns}"
-        col2_1.metric('Temperature (F)', today_forecast['temperature_degF'].iloc[0])
-        col2_2.image(today_forecast['icon'].iloc[0], use_column_width=False)
-        col2_1.write(today_forecast['detailedForecast'].iloc[0])
-    else:
-        col2_1.write('Unable to retrieve forecast data')
-        if col2_1.button('Retry'):
-            get_forecasts(site)
-    st.subheader("EV Charging Station Location")
-    folium_static(m, width=450, height=450)
+minimal = False
+if not minimal:
+    col2.column_config = {'justify': 'right'}
+    with col2:
+        st.markdown(
+            f"<h3 style='text-align: center; color: white;'>Weather Forecast for {site} {today_forecast['name'].iloc[0]} </h3>",
+            unsafe_allow_html=True)
+        col2_1, col2_2 = st.columns([0.5, 0.5])
+        if today_forecast is not None:
+            logger.info(today_forecast.columns)
+            assert 'temperature_degF' in today_forecast.columns, f"no temperature in {today_forecast.columns}"
+            col2_1.metric('Temperature (F)', today_forecast['temperature_degF'].iloc[0])
+            col2_2.image(today_forecast['icon'].iloc[0], use_column_width=False)
+            col2_1.write(today_forecast['detailedForecast'].iloc[0])
+        else:
+            col2_1.write('Unable to retrieve forecast data')
+            if col2_1.button('Retry'):
+                get_forecasts(site)
+        st.subheader("EV Charging Station Location")
+        folium_static(m, width=450, height=450)
