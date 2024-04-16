@@ -12,6 +12,8 @@ import pytz
 import folium
 from streamlit_folium import folium_static
 from typing import Tuple
+import base64
+from pathlib import Path
 
 print(os.getcwd())
 from src.data_preprocessing import datetime_processing, userinput_processing, holiday_processing, create_x, \
@@ -180,6 +182,17 @@ def get_recommendation_chunks(og_recommendation):
         if i not in final_list:
             final_list.append(i)
     return final_list
+
+def img_to_bytes(img_path):
+    img_bytes = Path(img_path).read_bytes()
+    encoded = base64.b64encode(img_bytes).decode()
+    return encoded
+
+def img_to_html(img_path):
+    img_html = "<img src='data:image/png;base64,{}' class='img-fluid'>".format(
+        img_to_bytes(img_path)
+    )
+    return img_html
     # DELETE ME WHEN TEST COMPLETE
     # logger.info(f'getting recommendation chunks {type(og_recommendation)}, shape : {og_recommendation.shape}, columns: {og_recommendation.columns}')
     # og_recommendation.to_csv('test_recommendation.csv')
@@ -265,9 +278,10 @@ logger.info('initialized site variables and maps')
 st.set_page_config(page_title='Charge Buddy', page_icon=':zap:', layout='wide', initial_sidebar_state='auto')
 col01, col02, col03 = st.columns(3)
 # title in markdown to allow for styling and positioning
-#st.markdown("<h1 style='text-align: center; color: orange;'>Charge Buddy</h1>", unsafe_allow_html=True)
+#st.markdown("<h1 style='text-align: center; color: orange;'>Charge Buddy</h1>", unsafe_allow_html=True) d
 with col02:
-    st.image("ChargebuddyIcon.jpeg", use_column_width=True)
+    st.markdown("<p style='text-align: center; color: grey;' > " + img_to_html('ChargebuddyIcon.jpeg') + "</p>", unsafe_allow_html=True)
+
 
 st.markdown("<h3 style='text-align: center; color: green;'>Helping EV Owners find the best time to charge</h3>",
             unsafe_allow_html=True)
