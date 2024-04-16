@@ -330,7 +330,7 @@ range_end = datetime(range_end_ls[0], range_end_ls[1], range_end_ls[2])
 
 with st.sidebar:
     user_loc = streamlit_geolocation()
-    if any(list(loc.values())):
+    if any(list(user_loc.values())):
         st.write("Current Location: ")
         st.write("Latitude: ", str(user_loc['latitude']))
         st.write("Longitude: ", str(user_loc['longitude']))
