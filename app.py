@@ -440,6 +440,8 @@ with col1:
     wind_solar_forecast = wind_solar_forecast.sort_values('INTERVALSTARTTIME_GMT').loc[
         (wind_solar_forecast['INTERVALSTARTTIME_GMT'] >= start_localized) & (
                     wind_solar_forecast['INTERVALSTARTTIME_GMT'] <= end_localized)]
+    
+    selection = alt.selection_multi(fields=['recommended'], bind='legend')
 
     availability_chart = alt.Chart(X.reset_index()).mark_bar().encode(
         x=alt.X('datetime:T', title='Time'),
@@ -450,7 +452,9 @@ with col1:
     ).properties(
         width=800,
         height=250
-    ).interactive()
+    ).interactive(
+    ).add_params(selection
+    )
 
     #logger.info(f'pricing is {pricing.reset_index().info()}')
     pricing_chart = alt.Chart(pricing.reset_index(), title='Pricing').mark_line().encode(
