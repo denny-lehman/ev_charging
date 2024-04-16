@@ -329,11 +329,11 @@ range_end = datetime(range_end_ls[0], range_end_ls[1], range_end_ls[2])
 #                 'Check the code at https://github.com/paduel/streamlit_finance_chart')
 
 with st.sidebar:
-    loc = streamlit_geolocation()
+    user_loc = streamlit_geolocation()
     if any(list(loc.values())):
         st.write("Current Location: ")
-        st.write("Latitude: ", str(loc['latitude']))
-        st.write("Longitude: ", str(loc['longitude']))
+        st.write("Latitude: ", str(user_loc['latitude']))
+        st.write("Longitude: ", str(user_loc['longitude']))
     else:
         st.write('Waiting for location...')
 
